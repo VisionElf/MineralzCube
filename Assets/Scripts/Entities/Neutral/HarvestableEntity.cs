@@ -6,6 +6,7 @@ public class HarvestableEntity : Entity {
     //UNITY PROPERTIES
     public int maxResources;
     public int startingResources;
+    public EResourceType resourceType;
 
     public bool removeOnEmpty;
 
@@ -31,4 +32,9 @@ public class HarvestableEntity : Entity {
             RemoveObject();
         return quantity;
     }
+}
+
+public enum EResourceType
+{
+    Rock, Mineral
 }

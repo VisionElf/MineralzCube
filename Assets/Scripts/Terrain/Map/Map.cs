@@ -60,6 +60,8 @@ public class Map : MonoBehaviour {
     public int borderSize;
     public bool smoothBorder;
 
+    public int isolatedCasesRadius;
+
     public bool drawGizmos;
 
     //PUBLIC PROPERTIES
@@ -82,6 +84,8 @@ public class Map : MonoBehaviour {
     Case[,] cases;
     System.Random randomGenerator;
 
+    List<Case> emptyCases;
+
     //STATIC
     static public Map instance;
 
@@ -94,16 +98,56 @@ public class Map : MonoBehaviour {
     //FUNCTIONS
     public void GenerateMap()
     {
+        StopCoroutine("GenerateMapCR");
+        StartCoroutine("GenerateMapCR");
+    }
+    IEnumerator GenerateMapCR()
+    {
+        Other.StartStep("Clear objects");
+        yield return null;
         ClearObjects();
+
+        Other.NextStep("Init random");
+        yield return null;
         InitRandom();
+
+        Other.NextStep("Create map");
+        yield return null;
         CreateMap();
+
         if (smoothBorder)
+        {
+            Other.NextStep("Create border");
+            yield return null;
             CreateBorder(borderSize, ECaseType.Rock);
+        }
+
+        Other.NextStep("Smoothing");
+        yield return null;
         for (int i = 0; i < smoothCount; i++)
+        {
             SmoothMap(smoothThreshold, ECaseType.Rock, ECaseType.Empty);
+            yield return null;
+        }
+
         if (!smoothBorder)
+        {
+            Other.NextStep("Create border");
+            yield return null;
             CreateBorder(borderSize, ECaseType.Rock);
+        }
+
+        Other.NextStep("Create objects");
+        yield return null;
         CreateObjects();
+
+        Other.NextStep("Finding starting cases");
+        yield return null;
+        //FindStartingPoints();
+
+        Other.StopStep("Generating map");
+
+        GetComponent<Grid>().CreateGrid();
     }
 
     public void InitRandom()
@@ -115,6 +159,7 @@ public class Map : MonoBehaviour {
     }
     public void CreateMap()
     {
+        emptyCases = new List<Case>();
         cases = new Case[mapSizeX, mapSizeY];
         for (int x = 0; x < cases.GetLength(0); x++)
         {
@@ -131,12 +176,15 @@ public class Map : MonoBehaviour {
                         break;
                     }
                 }
-                cases[x, y] = new Case(x, y, type);
+                cases[x, y] = new Case(x, y, type, GetPositionAt(x, y));
+                if (type == ECaseType.Empty)
+                    emptyCases.Add(cases[x, y]);
             }
         }
     }
     public void SmoothMap(int threshold, ECaseType type, ECaseType smoothType)
     {
+        emptyCases.Clear();
         for (int x = 0; x < cases.GetLength(0); x++)
         {
             for (int y = 0; y < cases.GetLength(1); y++)
@@ -149,6 +197,8 @@ public class Map : MonoBehaviour {
                     else if (tmp < threshold)
                         cases[x, y].caseType = smoothType;
                 }
+                if (cases[x, y].caseType == ECaseType.Empty)
+                    emptyCases.Add(cases[x, y]);
             }
         }
     }
@@ -177,7 +227,7 @@ public class Map : MonoBehaviour {
             for (int y = 0; y < cases.GetLength(1); y++)
             {
                 if (cases[x,y].caseType != ECaseType.Empty)
-                    CreateObjectOnMap(GetObjectFromType(cases[x,y].caseType), GetPositionAt(cases[x,y]));
+                    CreateObjectOnMap(GetObjectFromType(cases[x,y].caseType), cases[x,y].position);
             }
         }
     }
@@ -191,7 +241,54 @@ public class Map : MonoBehaviour {
         obj.tag = "Terrain";
     }
 
-    
+    public List<Case> FindStartingPoints()
+    {
+        List<Case> potentialsCases = FindIsolatedCases(isolatedCasesRadius);
+        List<CaseGroup> groups = new List<CaseGroup>();
+        int a = 1000;
+        while (potentialsCases.Count > 0 && a > 0)
+        {
+            CaseGroup group = new CaseGroup();
+            List<Case> openList = new List<Case>();
+            openList.Add(potentialsCases[0]);
+
+            while (openList.Count > 0)
+            {
+                Case tempCase = openList[0];
+                group.Add(tempCase);
+                openList.Remove(tempCase);
+                potentialsCases.Remove(tempCase);
+                foreach (Case c in GetCasesAround(tempCase, 1))
+                    if (potentialsCases.Contains(c) && !group.Contains(c) && !openList.Contains(c))
+                        openList.Add(c);
+            }
+            groups.Add(group);
+            a--;
+        }
+        if (a == 0)
+            print("Max loops reached " + potentialsCases.Count);
+
+        List<Case> startingCases = new List<Case>();
+        foreach (CaseGroup g in groups)
+        {
+            Case c = g.GetCenterCase();
+            c.color = Color.red;
+            startingCases.Add(c);
+        }
+
+        return startingCases;
+    }
+    public List<Case> FindIsolatedCases(int radius)
+    {
+        List<Case> isolatedCases = new List<Case>();
+        foreach (Case c in emptyCases)
+        {
+            float count = GetPercentInCircle(c, radius, ECaseType.Empty);
+            if (count >= 1f)
+                isolatedCases.Add(c);
+        }
+        return isolatedCases;
+    }
 
     public GameObject GetObjectFromType(ECaseType type)
     {
@@ -201,20 +298,20 @@ public class Map : MonoBehaviour {
         return null;
     }
 
-    public Vector3 GetPositionAt(Case c)
+    public Vector3 GetPositionAt(int x, int y)
     {
-        return transform.position - mapSize / 2 + new Vector3((c.x + 0.5f) * caseSize, 0f, (c.y + 0.5f) * caseSize);
+        return transform.position - mapSize / 2 + new Vector3((x + 0.5f) * caseSize, 0f, (y + 0.5f) * caseSize);
     }
     public Vector3 GetCasePositionAt(Vector3 vec)
     {
         return new Vector3((vec.x / caseSize), 0f, (vec.z / caseSize));
     }
-    public List<Case> GetNodesAround(Case c, int radius)
+    public List<Case> GetCasesAround(Case c, int distance)
     {
         List<Case> list = new List<Case>();
-        for (int i = -radius; i <= radius; i++)
+        for (int i = -distance; i <= distance; i++)
         {
-            for (int j = -radius; j <= radius; j++)
+            for (int j = -distance; j <= distance; j++)
             {
                 if (i != 0 || j != 0)
                 {
@@ -227,6 +324,26 @@ public class Map : MonoBehaviour {
         }
         return list;
     }
+    public List<Case> GetCasesInCircle(Case center, float radius)
+    {
+        List<Case> list = new List<Case>();
+        int distance = Mathf.CeilToInt(radius);
+        for (int i = -distance; i <= distance; i++)
+        {
+            for (int j = -distance; j <= distance; j++)
+            {
+                if (i != 0 || j != 0)
+                {
+                    int x = i + center.x;
+                    int y = j + center.y;
+                    if (InBounds(x, y) && Vector3.Distance(center.position, cases[x,y].position) <= radius)
+                        list.Add(cases[x, y]);
+                }
+            }
+        }
+        return list;
+    }
+
     public int GetCountAround(Case c, int radius, ECaseType type, bool borderCount)
     {
         int count = 0;
@@ -250,6 +367,30 @@ public class Map : MonoBehaviour {
         }
         return count;
     }
+    public float GetPercentInCircle(Case center, float radius, ECaseType type)
+    {
+        int count = 0;
+        int total = 0;
+        int distance = Mathf.CeilToInt(radius);
+        for (int i = -distance; i <= distance; i++)
+        {
+            for (int j = -distance; j <= distance; j++)
+            {
+                if (i != 0 || j != 0)
+                {
+                    int x = i + center.x;
+                    int y = j + center.y;
+                    if (InBounds(x, y) && Vector3.Distance(center.position, cases[x, y].position) <= radius)
+                    {
+                        if (cases[x, y].caseType == type)
+                            count++;
+                        total++;
+                    }
+                }
+            }
+        }
+        return (float)count / total;
+    }
     public bool InBounds(int x, int y)
     {
         return x >= 0 && x < cases.GetLength(0) && y >= 0 && y < cases.GetLength(1);
@@ -267,7 +408,7 @@ public class Map : MonoBehaviour {
                 foreach (Case c in cases)
                 {
                     Gizmos.color = c.GetColor();
-                    Gizmos.DrawCube(GetPositionAt(c), Vector3.one * caseSize);
+                    Gizmos.DrawCube(c.position, Vector3.one * caseSize);
                 }
             }
         }

@@ -11,16 +11,22 @@ public class Case {
     public ECaseType caseType;
     public int x;
     public int y;
+    public Vector3 position;
+    public Color color;
 
-    public Case(int _x, int _y, ECaseType _caseType)
+    public Case(int _x, int _y, ECaseType _caseType, Vector3 _position)
     {
         x = _x;
         y = _y;
         caseType = _caseType;
+        position = _position;
+        color = new Color(0, 0, 0, 0);
     }
 
     public Color GetColor()
     {
+        if (color.a > 0)
+            return color;
         switch (caseType)
         {
             case ECaseType.Empty:
