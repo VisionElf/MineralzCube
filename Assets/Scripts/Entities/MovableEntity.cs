@@ -23,7 +23,21 @@ public class MovableEntity : Entity {
         List<Vector3> path = Pathfinding.instance.FindPath(transform.position, targetDestinationEntity.transform.position);
         for (int i = 0; i < path.Count - 1; i++)
             waypoints.Enqueue(new Waypoint(path[i]));
-        waypoints.Enqueue(new Waypoint(path[path.Count - 1], targetDestinationEntity.radius));
+        waypoints.Enqueue(new Waypoint(path[path.Count - 1], targetDestinationEntity.basicProperties.radius));
+
+        StartCoroutine("Move");
+    }
+    public void MoveToRangeEntity(Entity entity, float range)
+    {
+        StopMove();
+        targetDestinationEntity = entity;
+        List<Vector3> path = Pathfinding.instance.FindPath(transform.position, targetDestinationEntity.transform.position);
+        Vector3 entityPosition = targetDestinationEntity.transform.position;
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            if (Vector3.Distance(entityPosition, path[i]) > range)
+                waypoints.Enqueue(new Waypoint(path[i]));
+        }
 
         StartCoroutine("Move");
     }

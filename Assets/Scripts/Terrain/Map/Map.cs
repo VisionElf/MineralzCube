@@ -93,6 +93,8 @@ public class Map : MonoBehaviour {
     void Start()
     {
         instance = this;
+
+        GenerateMap();
     }
 
     //FUNCTIONS

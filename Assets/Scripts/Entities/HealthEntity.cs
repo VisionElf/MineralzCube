@@ -39,6 +39,11 @@ public class HealthEntity : Entity {
         health += percent * maxHealth;
     }
 
+
+    public bool IsDead()
+    {
+        return health <= 0;
+    }
     public virtual void OnDeath()
     {
         RemoveObject();

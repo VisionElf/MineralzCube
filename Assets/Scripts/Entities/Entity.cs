@@ -3,13 +3,20 @@ using System.Collections;
 
 public class Entity : MonoBehaviour {
 
-    //UNITY PROPERTIES
-    public float radius;
-
     //FUNCTIONS
     public void RemoveObject()
     {
         GameObject.Destroy(this);
+    }
+
+    //BASIC
+    public bool IsBasic()
+    {
+        return GetComponent<BasicEntity>() != null;
+    }
+    public BasicEntity basicProperties
+    {
+        get { return GetComponent<BasicEntity>(); }
     }
 
     //HEALTH
@@ -27,8 +34,28 @@ public class Entity : MonoBehaviour {
     {
         return GetComponent<DepotEntity>() != null;
     }
-    public DepotEntity depotProperties()
+    public DepotEntity depotProperties
     {
-        return GetComponent<DepotEntity>();
+        get { return GetComponent<DepotEntity>(); }
+    }
+
+    //MOVABLE
+    public bool IsMovable()
+    {
+        return GetComponent<MovableEntity>() != null;
+    }
+    public MovableEntity movableProperties
+    {
+        get { return GetComponent<MovableEntity>(); }
+    }
+
+    //MOVABLE
+    public bool IsHarvester()
+    {
+        return GetComponent<HarvesterEntity>() != null;
+    }
+    public HarvesterEntity harvesterProperties
+    {
+        get { return GetComponent<HarvesterEntity>(); }
     }
 }
