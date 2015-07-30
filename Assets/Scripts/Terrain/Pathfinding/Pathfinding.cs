@@ -11,29 +11,23 @@ public class Pathfinding : MonoBehaviour
     public Transform end;
 
     public bool displayPathfinding;
+    public bool displaySmoothing;
+
+    static public Pathfinding instance;
 
     void Start()
     {
         grid = GetComponent<Grid>();
+        instance = this;
     }
 
-    public void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.P))
-            StartCoroutine(FindPath(start.position, end.position));
-    }
-
-    public IEnumerator FindPath(Vector3 start, Vector3 end)
+    public List<Vector3> FindPath(Vector3 start, Vector3 end)
     {
         Stopwatch sw = new Stopwatch();
         sw.Start();
-        grid.ResetColors();
 
         Node startNode = grid.GetNodeAt(start);
         Node endNode = grid.GetNodeAt(end);
-
-        startNode.color = Color.yellow;
-        endNode.color = Color.blue;
 
         List<Node> path = new List<Node>();
 
@@ -46,14 +40,11 @@ public class Pathfinding : MonoBehaviour
         {
             Node currentNode = openList.RemoveFirst();
             closedList.Add(currentNode);
-
             if (currentNode == endNode)
             {
                 path = RetracePath(endNode, startNode);
                 break;
             }
-
-            currentNode.color = Color.blue;
 
             foreach (Node n in grid.GetNeighbours(currentNode, 1))
             {
@@ -74,23 +65,11 @@ public class Pathfinding : MonoBehaviour
                         openList.UpdateItem(n);
                 }
             }
-            if (displayPathfinding)
-                yield return null;
-
-            currentNode.color = Color.red;
-            if (displayPathfinding)
-                yield return null;
         }
 
         if (path.Count > 0)
-        {
-            foreach (Node n in path)
-                n.color = Color.green;
-
-            StartCoroutine(BestSmooth(path));
-            //return BestSmooth(path);
-        }
-        //return new List<Vector3>();// path;
+            path = BestSmooth(path);
+        return NodeListToWaypoints(path);
     }
 
     public List<Node> RetracePath(Node end, Node start)
@@ -130,7 +109,15 @@ public class Pathfinding : MonoBehaviour
         return list;
     }
 
-    public IEnumerator BestSmooth(List<Node> path)
+    public List<Vector3> NodeListToWaypoints(List<Node> path)
+    {
+        List<Vector3> waypoints = new List<Vector3>();
+        foreach (Node n in path)
+            waypoints.Add(n.position);
+        return waypoints;
+    }
+
+    public List<Node> BestSmooth(List<Node> path)
     {
         List<Node> list = new List<Node>();
         Node lastNode = path[0];
@@ -150,25 +137,13 @@ public class Pathfinding : MonoBehaviour
                 {
                     bestNode = n;
                     lastIndex = i;
-
-                    List<Node> temp = new List<Node>(list);
-                    temp.Add(bestNode);
-                    grid.path = temp;
-                    if (displayPathfinding)
-                        yield return null;
                 }
             }
             if (bestNode == null)
                 bestNode = endNode;
             list.Add(bestNode);
-            if (displayPathfinding)
-                yield return null;
             lastNode = bestNode;
         }
-
-        grid.path = list;
-        print("smoothing done");
-        grid.ResetColors();
-        //return list;
+        return list;
     }
 }

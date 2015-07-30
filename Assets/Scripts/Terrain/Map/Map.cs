@@ -143,11 +143,12 @@ public class Map : MonoBehaviour {
 
         Other.NextStep("Finding starting cases");
         yield return null;
-        //FindStartingPoints();
+        List<Case> startingPoints = FindStartingPoints();
 
         Other.StopStep("Generating map");
 
         GetComponent<Grid>().CreateGrid();
+        GameObject.Find("Player").GetComponent<Player>().CreateStartingUnits(startingPoints[randomGenerator.Next(0, startingPoints.Count)]);
     }
 
     public void InitRandom()
@@ -245,6 +246,8 @@ public class Map : MonoBehaviour {
     {
         List<Case> potentialsCases = FindIsolatedCases(isolatedCasesRadius);
         List<CaseGroup> groups = new List<CaseGroup>();
+        foreach (Case c in potentialsCases)
+            c.color = Color.green;
         int a = 1000;
         while (potentialsCases.Count > 0 && a > 0)
         {
