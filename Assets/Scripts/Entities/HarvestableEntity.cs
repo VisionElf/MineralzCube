@@ -32,6 +32,10 @@ public class HarvestableEntity : Entity {
             RemoveObject();
         return quantity;
     }
+    public float GetPercentResources()
+    {
+        return resources / maxResources;
+    }
 }
 
 public enum EResourceType

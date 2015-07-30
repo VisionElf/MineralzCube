@@ -59,6 +59,47 @@ public class DepotEntity : Entity {
             count += r.stock;
         return count;
     }
+    public int GetTotalStock()
+    {
+        if (shareResourcesStocks)
+            return maxTotalStock;
+        else
+        {
+            int total = 0;
+            foreach (ResourceStock r in resourcesStocks)
+                total += r.maxStock;
+            return total;
+        }
+    }
+
+    public float GetPercentStock()
+    {
+        return (float)GetAllResourcesStock() / GetTotalStock();
+    }
+
+    //DRAW
+    void OnGUI()
+    {
+        if (GetPercentStock() > 0)
+        {
+            int barWidth = 100;
+            int barHeight = 10;
+            int barUp = 5;
+            int barSize = 2;
+
+            Vector3 pos = basicProperties.owner.playerCamera.WorldToScreenPoint(transform.position + Vector3.forward * basicProperties.radius);
+            pos.y = Screen.height - pos.y;
+
+            Rect fullRect = new Rect(pos.x - barWidth / 2, pos.y - barHeight - barUp, barWidth, barHeight);
+            Rect rect = new Rect(fullRect.x + barSize, fullRect.y + barSize, Mathf.Max(0, GetPercentStock() * fullRect.width - barSize * 2), fullRect.height - barSize * 2);
+
+            GUI.color = Color.black;
+            GUI.DrawTexture(fullRect, Static.basic_texture);
+            float g = 0.2f + GetPercentStock() * 0.5f;
+            GUI.color = new Color(g, g, g);
+            GUI.DrawTexture(rect, Static.basic_texture);
+        }
+    }
 }
 
 [System.Serializable]

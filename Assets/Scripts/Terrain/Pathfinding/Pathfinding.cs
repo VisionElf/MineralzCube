@@ -21,7 +21,18 @@ public class Pathfinding : MonoBehaviour
         instance = this;
     }
 
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.P))
+            FindPath(start.position, end.position);
+    }
+
     public List<Vector3> FindPath(Vector3 start, Vector3 end)
+    {
+        Collider temp;
+        return FindPath(start, end, false, out temp);
+    }
+    public List<Vector3> FindPath(Vector3 start, Vector3 end, bool ignoreStructure, out Collider structureHit)
     {
         Stopwatch sw = new Stopwatch();
         sw.Start();
@@ -30,6 +41,15 @@ public class Pathfinding : MonoBehaviour
         Node endNode = grid.GetNodeAt(end);
 
         List<Node> path = new List<Node>();
+
+        structureHit = null;
+        RaycastHit hitInfo;
+        Collider startObstacle = null;
+        Collider endObstacle = null;
+        if (Physics.Raycast(start + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, grid.mask))
+            startObstacle = hitInfo.collider;
+        if (Physics.Raycast(end + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, grid.mask))
+            endObstacle = hitInfo.collider;
 
         Heap<Node> openList = new Heap<Node>(grid.gridSize);
         HashSet<Node> closedList = new HashSet<Node>();
@@ -43,13 +63,31 @@ public class Pathfinding : MonoBehaviour
             if (currentNode == endNode)
             {
                 path = RetracePath(endNode, startNode);
+                if (ignoreStructure)
+                {
+                    foreach (Node n in path)
+                    {
+                        if (n.obstacle != null)
+                        {
+                            structureHit = n.obstacle;
+                            break;
+                        }
+                    }
+                }
                 break;
             }
 
-            foreach (Node n in grid.GetNeighbours(currentNode, 1))
+            foreach (Node n in grid.GetNeighbours(currentNode))
             {
-                if (!n.walkable || closedList.Contains(n))
+                if (closedList.Contains(n))
                     continue;
+
+                if (!n.walkable)
+                {
+                    if (n.obstacle != startObstacle && n.obstacle != endObstacle)
+                        if (!ignoreStructure || n.obstacle.tag != "Building")
+                            continue;
+                }
 
                 float newGScore = currentNode.gCost + grid.GetDistance(currentNode, n);
                 if (newGScore < n.gCost || !openList.Contains(n))
@@ -58,7 +96,6 @@ public class Pathfinding : MonoBehaviour
                     n.hCost = grid.GetDistance(n, endNode);
                     n.parent = currentNode;
 
-                    n.color = Color.yellow;
                     if (!openList.Contains(n))
                         openList.Add(n);
                     else
@@ -68,7 +105,7 @@ public class Pathfinding : MonoBehaviour
         }
 
         if (path.Count > 0)
-            path = BestSmooth(path);
+            path = BestSmooth(path, startObstacle, endObstacle);
         return NodeListToWaypoints(path);
     }
 
@@ -117,7 +154,7 @@ public class Pathfinding : MonoBehaviour
         return waypoints;
     }
 
-    public List<Node> BestSmooth(List<Node> path)
+    public List<Node> BestSmooth(List<Node> path, Collider startCol, Collider endCol)
     {
         List<Node> list = new List<Node>();
         Node lastNode = path[0];
@@ -133,7 +170,8 @@ public class Pathfinding : MonoBehaviour
             for (int i = lastIndex + 1; i < path.Count; i++)
             {
                 Node n = path[i];
-                if (!Physics.Raycast(lastNode.position + Vector3.up, (n.position - lastNode.position).normalized, out hitInfo, Vector3.Distance(n.position, lastNode.position), grid.mask))
+                if (!Physics.Raycast(lastNode.position + Vector3.up, (n.position - lastNode.position).normalized, out hitInfo, Vector3.Distance(n.position, lastNode.position), grid.mask)
+                    || (hitInfo.collider == startCol || hitInfo.collider == endCol))
                 {
                     bestNode = n;
                     lastIndex = i;

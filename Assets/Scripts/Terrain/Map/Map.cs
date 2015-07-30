@@ -63,6 +63,7 @@ public class Map : MonoBehaviour {
     public int isolatedCasesRadius;
 
     public bool drawGizmos;
+    public bool printDebug;
 
     //PUBLIC PROPERTIES
     public int mapSizeX
@@ -105,6 +106,7 @@ public class Map : MonoBehaviour {
     }
     IEnumerator GenerateMapCR()
     {
+        Other.print = printDebug;
         Other.StartStep("Clear objects");
         yield return null;
         ClearObjects();
@@ -239,7 +241,7 @@ public class Map : MonoBehaviour {
     {
         GameObject obj = GameObject.Instantiate(type);
         obj.transform.position = GetCasePositionAt(position);
-        obj.transform.position += new Vector3(0, randomGenerator.Next(0, 100) * 0.005f - 0.25f, 0f);
+        obj.GetComponentInChildren<Renderer>().gameObject.transform.position += new Vector3(0, randomGenerator.Next(0, 100) * 0.005f - 0.25f, 0f);
         obj.transform.Rotate(Vector3.up * randomGenerator.Next(0, 4) * 90);
         obj.tag = "Terrain";
     }

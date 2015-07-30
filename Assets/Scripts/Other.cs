@@ -3,6 +3,8 @@ using System.Collections;
 
 public class Other {
 
+    static public bool print = true;
+
     static System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
     static float deltaTime;
     static string oldStep;
@@ -10,15 +12,19 @@ public class Other {
     static public void StartStep(string step)
     {
         sw.Start();
-        Debug.Log(step + "...");
+        if (print)
+            Debug.Log(step + "...");
         oldStep = step;
     }
 
     static public void NextStep(string step)
     {
         deltaTime = sw.ElapsedMilliseconds - deltaTime;
-        Debug.Log(oldStep + " done in " + deltaTime + " ms");
-        Debug.Log(step + "...");
+        if (print)
+        {
+            Debug.Log(oldStep + " done in " + deltaTime + " ms");
+            Debug.Log(step + "...");
+        }
         oldStep = step;
     }
 
@@ -26,8 +32,12 @@ public class Other {
     {
         sw.Stop();
         deltaTime = sw.ElapsedMilliseconds - deltaTime;
-        Debug.Log(oldStep + " done in " + deltaTime + " ms");
-        Debug.Log(step + " total done in " + sw.ElapsedMilliseconds + " ms");
+        if (print)
+        {
+            Debug.Log(oldStep + " done in " + deltaTime + " ms");
+            Debug.Log(step + " total done in " + sw.ElapsedMilliseconds + " ms");
+        }
+        
     }
 
 }

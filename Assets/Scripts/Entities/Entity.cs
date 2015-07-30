@@ -6,7 +6,7 @@ public class Entity : MonoBehaviour {
     //FUNCTIONS
     public void RemoveObject()
     {
-        GameObject.Destroy(this);
+        GameObject.Destroy(gameObject);
     }
 
     //BASIC
@@ -16,7 +16,11 @@ public class Entity : MonoBehaviour {
     }
     public BasicEntity basicProperties
     {
-        get { return GetComponent<BasicEntity>(); }
+        get {
+            BasicEntity temp = GetComponent<BasicEntity>();
+            if (temp == null)
+                print(this.name + " has no basic properties");
+            return temp; }
     }
 
     //HEALTH

@@ -53,7 +53,7 @@ public class Grid : MonoBehaviour
     }
     Vector3 gridWorldSize
     {
-        get { return new Vector3(gridWorldSizeX, 1f, gridWorldSizeY); }
+        get { return new Vector3(gridWorldSizeX, 0, gridWorldSizeY); }
     }
 
     public void CreateGrid()
@@ -65,16 +65,17 @@ public class Grid : MonoBehaviour
             for (int y = 0; y < gridSizeY; y++)
             {
                 Vector3 position = GetPositionAt(x, y);
-                nodes[x, y] = new Node(x, y, IsWalkable(position), position);
+                nodes[x, y] = new Node(x, y, position);
+                CheckWalkable(nodes[x, y]);
             }
         }
     }
-    public List<Node> GetNeighbours(Node node, int distance)
+    public List<Node> GetNeighbours(Node node)
     {
         List<Node> list = new List<Node>();
-        for (int i = -distance; i <= distance; i++)
+        for (int i = -1; i <= 1; i++)
         {
-            for (int j = -distance; j <= distance; j++)
+            for (int j = -1; j <= 1; j++)
             {
                 if (i != 0 || j != 0)
                 {
@@ -100,14 +101,40 @@ public class Grid : MonoBehaviour
 
     public bool InBounds(int x, int y) { return x >= 0 && x < gridSizeX && y >= 0 && y < gridSizeY; }
 
-    public bool IsWalkable(Vector3 position)
+    public void CheckWalkable(Node node)
     {
         RaycastHit hitInfo;
-        if (Physics.Raycast(position + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, mask))
+        if (Physics.Raycast(node.position + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, mask))
+            node.SetWalkable(false, hitInfo.collider);
+        else
+            node.SetWalkable(true, null);
+    }
+
+    public void RefreshGrid(Vector3 position, float radius)
+    {
+        int rad = Mathf.CeilToInt(radius / nodeSize) + 1;
+
+        Node posNode = GetNodeAt(position);
+
+        foreach (Node n in GetAroundNodes(posNode, rad))
+            CheckWalkable(n);
+
+    }
+
+    public List<Node> GetAroundNodes(Node node, int radius)
+    {
+        List<Node> neighbours = new List<Node>();
+        for (int i = -radius; i <= radius; i++)
         {
-            return false;
+            for (int j = -radius; j <= radius; j++)
+            {
+                int x = node.x + i;
+                int y = node.y + j;
+                if (InBounds(x, y))
+                    neighbours.Add(nodes[x, y]);
+            }
         }
-        return true;
+        return neighbours;
     }
 
     public Vector3 GetPositionAt(int x, int y)

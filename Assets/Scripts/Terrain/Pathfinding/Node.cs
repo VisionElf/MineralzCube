@@ -7,7 +7,8 @@ public class Node : IHeapItem<Node>
     public int x;
     public int y;
 
-    public Vector3 position;
+    Vector3 _position;
+    public Vector3 position { get { return _position; } }
     public Color color;
     public bool walkable;
 
@@ -15,17 +16,28 @@ public class Node : IHeapItem<Node>
     public float hCost;
 
     public Node parent;
+    public Collider obstacle;
 
     public float fCost { get { return gCost + hCost; } }
 
-    public Node(int _x, int _y, bool _walkable, Vector3 pos)
+    public Node(int _x, int _y, Vector3 pos)
     {
         x = _x;
         y = _y;
-        walkable = _walkable;
-        position = pos;
+        _position = pos;
 
+        SetWalkable(true, null);
         ResetColor();
+    }
+
+    public void SetWalkable(bool _walkable, Collider collider)
+    {
+        walkable = _walkable;
+        if (!walkable)
+            obstacle = collider;
+        else
+            obstacle = null;
+        color = walkable ? Color.white : Color.black;
     }
 
     public void ResetColor() { color = (walkable) ? Color.white : Color.black; }

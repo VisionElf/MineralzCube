@@ -50,7 +50,7 @@ public class AttackEntity : Entity {
         StartScanTarget();
     }
 
-    IEnumerator ScanTarget()
+    /*IEnumerator ScanTarget()
     {
         HealthEntity potentialTarget = null;
         while (potentialTarget == null)
@@ -89,11 +89,11 @@ public class AttackEntity : Entity {
         }
 
         StopAttack();
-    }
+    }*/
 
     void LaunchProjectile(HealthEntity target)
     {
-        GameObject projectile = GameObject.Instantiate(projectileType.gameObject);
+        //GameObject projectile = GameObject.Instantiate(projectileType.gameObject);
         //TODO: LAUNCH PROJECTILE
     }    
 }
