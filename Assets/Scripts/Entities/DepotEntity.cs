@@ -8,8 +8,44 @@ public class DepotEntity : Entity {
     public bool shareResourcesStocks;
     public int maxTotalStock;
     public List<ResourceStock> resourcesStocks;
+    public int dummyListStart;
+    public int dummyListEnd;
+
+    //PROPERTIES
+    List<Dummy> dummyList;
+    float dummyTotalSize;
 
     //FUNCTIONS
+    void Start()
+    {
+        dummyList = new List<Dummy>();
+        for (int i = dummyListStart; i <= dummyListEnd; i++)
+        {
+            GameObject obj = FindChild("R" + i);
+            if (obj != null)
+            {
+                Dummy dummy;
+                if ((dummy = obj.GetComponent<Dummy>()) != null)
+                    dummyList.Add(dummy);
+            }
+        }
+        foreach (Dummy d in dummyList)
+            dummyTotalSize += d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;
+        RefreshDummyList();
+    }
+    public void RefreshDummyList()
+    {
+        float percent = GetPercentStock();
+        float fillQty = percent * dummyTotalSize;
+        foreach (Dummy d in dummyList)
+        {
+            float size = d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;
+
+            d.ScaleY(Mathf.Min(1, fillQty));
+            fillQty = Mathf.Max(fillQty - size, 0);
+        }
+    }
+
     public int AddResource(EResourceType resourceType, int quantity)
     {
         ResourceStock resourceStock = GetResourceStock(resourceType);
@@ -25,6 +61,7 @@ public class DepotEntity : Entity {
             if (quantity + current > total)
                 quantity = total - current;
             resourceStock.stock += quantity;
+            RefreshDummyList();
             return quantity;
         }
         else
@@ -39,6 +76,7 @@ public class DepotEntity : Entity {
             if (quantity > current)
                 quantity = current;
             resourceStock.stock -= quantity;
+            RefreshDummyList();
             return quantity;
         }
         else
@@ -72,33 +110,14 @@ public class DepotEntity : Entity {
         }
     }
 
+    public bool IsFull()
+    {
+        return GetAllResourcesStock() == GetTotalStock();
+    }
+
     public float GetPercentStock()
     {
         return (float)GetAllResourcesStock() / GetTotalStock();
-    }
-
-    //DRAW
-    void OnGUI()
-    {
-        if (GetPercentStock() > 0)
-        {
-            int barWidth = 100;
-            int barHeight = 10;
-            int barUp = 5;
-            int barSize = 2;
-
-            Vector3 pos = basicProperties.owner.playerCamera.WorldToScreenPoint(transform.position + Vector3.forward * basicProperties.radius);
-            pos.y = Screen.height - pos.y;
-
-            Rect fullRect = new Rect(pos.x - barWidth / 2, pos.y - barHeight - barUp, barWidth, barHeight);
-            Rect rect = new Rect(fullRect.x + barSize, fullRect.y + barSize, Mathf.Max(0, GetPercentStock() * fullRect.width - barSize * 2), fullRect.height - barSize * 2);
-
-            GUI.color = Color.black;
-            GUI.DrawTexture(fullRect, Static.basic_texture);
-            float g = 0.2f + GetPercentStock() * 0.5f;
-            GUI.color = new Color(g, g, g);
-            GUI.DrawTexture(rect, Static.basic_texture);
-        }
     }
 }
 

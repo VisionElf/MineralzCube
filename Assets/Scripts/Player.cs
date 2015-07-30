@@ -31,7 +31,7 @@ public class Player : MonoBehaviour {
 
     List<float> fpsList = new List<float>();
 
-    void Update()
+    void UpdateMouseButtons()
     {
         if (Input.GetMouseButton(1))
         {
@@ -48,6 +48,17 @@ public class Player : MonoBehaviour {
             }
         }
     }
+    void UpdateKeyboardKeys()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+            mainBase.CreateWorkers(5);
+    }
+    void Update()
+    {
+        UpdateMouseButtons();
+        UpdateKeyboardKeys();
+    }
+
     void OnGUI()
     {
         float fps = 1 / Time.deltaTime;

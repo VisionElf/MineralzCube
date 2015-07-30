@@ -13,16 +13,30 @@ public class HarvesterEntity : Entity {
     public int maxStock;
     public List<ResourceStock> resourcesStock;
 
+    public Dummy resourceDummy;
+    Color resourceModelBaseColor;
+
     //PROPERTIES
     HarvestableEntity targetEntity;
     public MainBaseEntity mainBase { get; set; }
 
     //FUNCTION
+    void Start()
+    {
+        RefreshResourceModel();
+    }
 
     public void Harvest(HarvestableEntity target)
     {
         StopHarvesting();
         targetEntity = target;
+        StartHarvesting();
+    }
+
+    public void SeekHarvest()
+    {
+        StopHarvesting();
+        targetEntity = mainBase.GetHarvestableEntity();
         StartHarvesting();
     }
 
@@ -79,16 +93,29 @@ public class HarvesterEntity : Entity {
     {
         while (targetEntity != null)
         {
-            while (ReachTarget())
-                yield return null;
-            while (HarvestTargetUntilFull())
-                yield return new WaitForSeconds(harvestSpeed);
+            if (!IsFull())
+            {
+                while (ReachTarget())
+                    yield return null;
+                while (HarvestTargetUntilFull())
+                    yield return new WaitForSeconds(harvestSpeed);
+            }
+
+            if (targetEntity == null)
+                targetEntity = mainBase.GetHarvestableEntity();
 
             DepotEntity depot = basicProperties.owner.GetDepot();
-            while (ReachCargo(depot))
+            if (!depot.IsFull())
+            {
+                while (ReachCargo(depot))
+                    yield return null;
+                BringCargo(depot);
                 yield return null;
-            BringCargo(depot);
+            }
+            else
+                targetEntity = null;
         }
+
 
         while (ReachBase())
             yield return null;
@@ -107,9 +134,16 @@ public class HarvesterEntity : Entity {
             if (qty + resourceStock.stock > maxStock)
                 qty = maxStock - resourceStock.stock;
             resourceStock.stock += qty;
+            RefreshResourceModel();
             return resourceStock.stock < maxStock && targetEntity != null;
         }
         return false;
+    }
+
+    public void RefreshResourceModel()
+    {
+        if (resourceDummy != null)
+            resourceDummy.ScaleY(GetPercentStock());
     }
 
     public bool ReachCargo(DepotEntity depot)
@@ -120,6 +154,7 @@ public class HarvesterEntity : Entity {
     {
         foreach (ResourceStock r in resourcesStock)
             r.stock -= depot.AddResource(r.resourceType, r.stock);
+        RefreshResourceModel();
         return true;
     }
     public bool ReachBase()
@@ -127,68 +162,5 @@ public class HarvesterEntity : Entity {
         return !basicProperties.Reached(mainBase, -mainBase.basicProperties.radius);
     }
 
-
-    IEnumerator Harvesting2()
-    {
-        while (targetEntity != null)
-        {
-            DepotEntity depot = basicProperties.owner.GetDepot();
-            while (!basicProperties.Reached(depot))
-                yield return null;
-
-            if (depot != null)
-            {
-                foreach (ResourceStock r in resourcesStock)
-                    r.stock -= depot.AddResource(r.resourceType, r.stock);
-                yield return null;
-            }
-
-            if (targetEntity != null || targetEntity.GetPercentResources() > 0)
-            {
-                while (!basicProperties.Reached(targetEntity, harvestRange))
-                    yield return null;
-
-                ResourceStock resourceStock = GetResourceStock(targetEntity.resourceType);
-                while (resourceStock.stock < maxStock && targetEntity != null)
-                {
-                    int qty = targetEntity.Harvest(harvestQuantity);
-                    if (qty + resourceStock.stock > maxStock)
-                        qty = maxStock - resourceStock.stock;
-                    resourceStock.stock += qty;
-                    yield return new WaitForSeconds(harvestSpeed);
-                }
-            }
-            else
-            {
-                while (!basicProperties.Reached(depot, -depot.basicProperties.radius))
-                    yield return null;
-            }
-        }
-
-
-    }
-
-    void OnGUI()
-    {
-        if (GetPercentStock() > 0)
-        {
-            int barWidth = 30;
-            int barHeight = 8;
-            int barUp = 2;
-            int barSize = 2;
-
-            Vector3 pos = basicProperties.owner.playerCamera.WorldToScreenPoint(transform.position + Vector3.forward * basicProperties.radius);
-            pos.y = Screen.height - pos.y;
-
-            Rect fullRect = new Rect(pos.x - barWidth / 2, pos.y - barHeight - barUp, barWidth, barHeight);
-            Rect rect = new Rect(fullRect.x + barSize, fullRect.y + barSize, Mathf.Max(0, GetPercentStock() * fullRect.width - barSize * 2), fullRect.height - barSize * 2);
-
-            GUI.color = Color.black;
-            GUI.DrawTexture(fullRect, Static.basic_texture);
-            float g = 0.2f + GetPercentStock() * 0.5f;
-            GUI.color = new Color(g, g, g);
-            GUI.DrawTexture(rect, Static.basic_texture);
-        }
-    }
 
 }

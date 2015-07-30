@@ -10,18 +10,21 @@ public class CameraController : MonoBehaviour {
 
     public void PanCamera(Vector3 position)
     {
-        transform.position = new Vector3(position.x, transform.position.y, position.z);
+        Vector3 vec = new Vector3(position.x, transform.position.y, position.z);
+        vec.x -= 21;
+        vec.z -= 21;
+        transform.position = vec;
     }
 
     void Update()
     {
         if (Input.GetKey(KeyCode.UpArrow))
-            transform.position += cameraSpeed * Vector3.forward;
+            transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.up);
         else if (Input.GetKey(KeyCode.DownArrow))
-            transform.position += cameraSpeed * Vector3.back;
+            transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.down);
         if (Input.GetKey(KeyCode.LeftArrow))
-            transform.position += cameraSpeed * Vector3.left;
+            transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.left);
         else if (Input.GetKey(KeyCode.RightArrow))
-            transform.position += cameraSpeed * Vector3.right;
+            transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.right);
     }
 }

@@ -160,7 +160,6 @@ public class Pathfinding : MonoBehaviour
         Node lastNode = path[0];
         int lastIndex = 0;
         Node endNode = path[path.Count - 1];
-        list.Add(lastNode);
 
         Node bestNode = lastNode;
         RaycastHit hitInfo;

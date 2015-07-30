@@ -10,6 +10,8 @@ public class HarvestableEntity : Entity {
 
     public bool removeOnEmpty;
 
+    public Dummy resourceDummy;
+
     //PRIVATE PROPERTIES
     int resources;
 
@@ -28,13 +30,20 @@ public class HarvestableEntity : Entity {
         if (quantity > resources)
             quantity = resources;
         resources -= quantity;
+        RefreshResourceModel();
         if (removeOnEmpty && resources == 0)
             RemoveObject();
         return quantity;
     }
+    public void RefreshResourceModel()
+    {
+        if (resourceDummy != null)
+            resourceDummy.ScaleY(GetPercentResources());
+    }
+
     public float GetPercentResources()
     {
-        return resources / maxResources;
+        return (float)resources / maxResources;
     }
 }
 

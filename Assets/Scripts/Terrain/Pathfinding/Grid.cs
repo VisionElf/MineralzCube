@@ -56,6 +56,13 @@ public class Grid : MonoBehaviour
         get { return new Vector3(gridWorldSizeX, 0, gridWorldSizeY); }
     }
 
+    static public Grid instance;
+
+    void Start()
+    {
+        instance = this;
+    }
+
     public void CreateGrid()
     {
         nodes = new Node[gridSizeX, gridSizeY];
