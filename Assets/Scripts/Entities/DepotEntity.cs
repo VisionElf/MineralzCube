@@ -33,16 +33,16 @@ public class DepotEntity : Entity {
             dummyTotalSize += d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;
         RefreshDummyList();
     }
+
     public void RefreshDummyList()
     {
         float percent = GetPercentStock();
-        float fillQty = percent * dummyTotalSize;
         foreach (Dummy d in dummyList)
         {
-            float size = d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;
+            float dp = (d.defaultScale.y * d.defaultScale.x * d.defaultScale.y) / dummyTotalSize;
 
-            d.ScaleY(Mathf.Min(1, fillQty));
-            fillQty = Mathf.Max(fillQty - size, 0);
+            d.ScaleY(Mathf.Min(percent / dp, 1));
+            percent = Mathf.Max(percent - dp, 0);
         }
     }
 

@@ -14,6 +14,7 @@ public class Pathfinding : MonoBehaviour
     public bool displaySmoothing;
 
     static public Pathfinding instance;
+    public int callCount;
 
     void Start()
     {
@@ -34,6 +35,7 @@ public class Pathfinding : MonoBehaviour
     }
     public List<Vector3> FindPath(Vector3 start, Vector3 end, bool ignoreStructure, out Collider structureHit)
     {
+        callCount++;
         Stopwatch sw = new Stopwatch();
         sw.Start();
 

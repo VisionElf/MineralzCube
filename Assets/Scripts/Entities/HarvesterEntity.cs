@@ -29,15 +29,23 @@ public class HarvesterEntity : Entity {
     public void Harvest(HarvestableEntity target)
     {
         StopHarvesting();
-        targetEntity = target;
+        SetHarvestable(target);
         StartHarvesting();
+    }
+
+    public bool SetHarvestable(HarvestableEntity target)
+    {
+        targetEntity = target;
+        if (targetEntity != null)
+            targetEntity.SetHarvester(this);
+        return targetEntity != null;
     }
 
     public void SeekHarvest()
     {
         StopHarvesting();
-        targetEntity = mainBase.GetHarvestableEntity();
-        StartHarvesting();
+        if (SetHarvestable(mainBase.GetHarvestableEntity()))
+            StartHarvesting();
     }
 
     void StartHarvesting()
@@ -47,6 +55,8 @@ public class HarvesterEntity : Entity {
     }
     void StopHarvesting()
     {
+        if (targetEntity != null)
+            targetEntity.SetHarvester(null);
         StopCoroutine("Harvesting");
         targetEntity = null;
     }
@@ -89,11 +99,18 @@ public class HarvesterEntity : Entity {
         return (float)GetAllResources() / GetTotalMaxResources();
     }
 
+    public bool TryGetNewTarget()
+    {
+        if (targetEntity == null)
+            return SetHarvestable(mainBase.GetHarvestableEntity());
+        return true;
+    }
+
     IEnumerator Harvesting()
     {
-        while (targetEntity != null)
+        while (TryGetNewTarget())
         {
-            if (!IsFull())
+            while (!IsFull() && TryGetNewTarget())
             {
                 while (ReachTarget())
                     yield return null;
@@ -101,22 +118,23 @@ public class HarvesterEntity : Entity {
                     yield return new WaitForSeconds(harvestSpeed);
             }
 
-            if (targetEntity == null)
-                targetEntity = mainBase.GetHarvestableEntity();
-
             DepotEntity depot = basicProperties.owner.GetDepot();
             if (!depot.IsFull())
             {
                 while (ReachCargo(depot))
+                {
+                    TryGetNewTarget();
                     yield return null;
+                }
                 BringCargo(depot);
                 yield return null;
             }
             else
+            {
                 targetEntity = null;
+                break;
+            }
         }
-
-
         while (ReachBase())
             yield return null;
     }

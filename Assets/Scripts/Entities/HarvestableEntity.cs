@@ -15,6 +15,8 @@ public class HarvestableEntity : Entity {
     //PRIVATE PROPERTIES
     int resources;
 
+    HarvesterEntity harvester;
+
     //UNITY FUNCTIONS
     void Start()
     {
@@ -35,6 +37,15 @@ public class HarvestableEntity : Entity {
             RemoveObject();
         return quantity;
     }
+    public void SetHarvester(HarvesterEntity entity)
+    {
+        harvester = entity;
+    }
+    public bool IsHarvested()
+    {
+        return harvester != null;
+    }
+
     public void RefreshResourceModel()
     {
         if (resourceDummy != null)
