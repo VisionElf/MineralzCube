@@ -21,6 +21,13 @@ public class Player : MonoBehaviour {
         mainBase.basicProperties.owner = this;
 
         playerCamera.GetComponent<CameraController>().PanCamera(obj.transform.position);
+        OnGameStarted();
+    }
+
+    public void OnGameStarted()
+    {
+        Other.gameStarted = true;
+        GameObject.Find("LoadingScreen").SetActive(false);
     }
 
     public DepotEntity GetDepot()
@@ -61,36 +68,39 @@ public class Player : MonoBehaviour {
 
     void OnGUI()
     {
-        float fps = 1 / Time.deltaTime;
-        fpsList.Add(fps);
-        if (fpsList.Count > 10000)
-            fpsList.RemoveAt(0);
-        float avgFps = 0;
-        foreach (float f in fpsList)
-            avgFps += f;
-        avgFps /= fpsList.Count;
-
-        int y = 0;
-        GUI.Label(new Rect(0, y, 200, 100), "FPS: " + Math.Round(fps, 2));
-        y += 20;
-        GUI.Label(new Rect(0, y, 200, 100), "Average FPS: " + Math.Round(avgFps, 2));
-        y += 20;
-        GUI.Label(new Rect(0, y, 200, 100), "Pathfinding Count: " + Pathfinding.instance.callCount);
-        y += 20;
-
-        int size = 1;
-        int width = 300;
-        int height = 70;
-        Vector2 fpsPos = new Vector2(Screen.width - width, Screen.height - height);
-        GUI.color = new Color(0, 0, 0, 0.8f);
-        GUI.DrawTexture(new Rect(fpsPos.x, fpsPos.y, width * size, height * size), Static.basic_texture);
-        for (int i = Math.Max(0, fpsList.Count - width); i < fpsList.Count; i++)
+        if (Other.gameStarted)
         {
-            GUI.color = Color.white;
-            GUI.DrawTexture(new Rect(fpsPos.x + (fpsList.Count - i) * size, fpsPos.y + (height - fpsList[i]) * 2, size, size), Static.basic_texture);
-        }
+            float fps = 1 / Time.deltaTime;
+            fpsList.Add(fps);
+            if (fpsList.Count > 10000)
+                fpsList.RemoveAt(0);
+            float avgFps = 0;
+            foreach (float f in fpsList)
+                avgFps += f;
+            avgFps /= fpsList.Count;
 
-        //DrawMinimap();
+            int y = 0;
+            GUI.Label(new Rect(0, y, 200, 100), "FPS: " + Math.Round(fps, 2));
+            y += 20;
+            GUI.Label(new Rect(0, y, 200, 100), "Average FPS: " + Math.Round(avgFps, 2));
+            y += 20;
+            GUI.Label(new Rect(0, y, 200, 100), "Pathfinding Count: " + Pathfinding.instance.callCount);
+            y += 20;
+
+            int size = 1;
+            int width = 300;
+            int height = 120;
+            Vector2 fpsPos = new Vector2(Screen.width - width, Screen.height - height);
+            GUI.color = new Color(0, 0, 0, 0.8f);
+            GUI.DrawTexture(new Rect(fpsPos.x, fpsPos.y, width * size, height * size), Static.basic_texture);
+            for (int i = Math.Max(0, fpsList.Count - (width / size)); i < fpsList.Count; i++)
+            {
+                GUI.color = Color.white;
+                GUI.DrawTexture(new Rect(fpsPos.x + (fpsList.Count - i) * size, fpsPos.y + height - (fpsList[i] * size), size, size), Static.basic_texture);
+            }
+
+            //DrawMinimap();
+        }
     }
 
     MinimapItem[,] minimap;

@@ -107,26 +107,30 @@ public class Map : MonoBehaviour {
     IEnumerator GenerateMapCR()
     {
         Other.print = printDebug;
-        Other.StartStep("Clear objects");
+        int[] loadings = new int[] { 10, 10, 100, 50, 200, 500, 1000, 100, 50 };
+        int max = 0;
+        foreach (int i in loadings)
+            max += i;
+        Other.StartStep("Clear objects", loadings[0], max);
         yield return null;
         ClearObjects();
 
-        Other.NextStep("Init random");
+        Other.NextStep("Init random", loadings[1]);
         yield return null;
         InitRandom();
 
-        Other.NextStep("Create map");
+        Other.NextStep("Create map", loadings[2]);
         yield return null;
         CreateMap();
 
         if (smoothBorder)
         {
-            Other.NextStep("Create border");
+            Other.NextStep("Create border", loadings[3]);
             yield return null;
             CreateBorder(borderSize, ECaseType.Rock);
         }
 
-        Other.NextStep("Smoothing");
+        Other.NextStep("Smoothing", loadings[4]);
         yield return null;
         for (int i = 0; i < smoothCount; i++)
         {
@@ -136,22 +140,26 @@ public class Map : MonoBehaviour {
 
         if (!smoothBorder)
         {
-            Other.NextStep("Create border");
+            Other.NextStep("Create border", loadings[3]);
             yield return null;
             CreateBorder(borderSize, ECaseType.Rock);
         }
 
-        Other.NextStep("Create objects");
+        Other.NextStep("Create objects", loadings[5]);
         yield return null;
         CreateObjects();
 
-        Other.NextStep("Finding starting cases");
+        Other.NextStep("Finding starting cases", loadings[6]);
         yield return null;
         List<Case> startingPoints = FindStartingPoints();
 
-        Other.StopStep("Generating map");
 
+        Other.NextStep("Creating pathfinding grid", loadings[7]);
         GetComponent<Grid>().CreateGrid();
+        yield return null;
+
+        Other.StopStep("Generating map", loadings[8]);
+
         GameObject.Find("Player").GetComponent<Player>().CreateStartingUnits(startingPoints[randomGenerator.Next(0, startingPoints.Count)]);
     }
 
