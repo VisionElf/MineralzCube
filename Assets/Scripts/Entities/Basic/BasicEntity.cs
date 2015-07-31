@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BasicEntity : Entity {
 
@@ -8,9 +9,39 @@ public class BasicEntity : Entity {
 
     //PROPERTIES
     public Player owner { get; set; }
+    Queue<Action> actions;
+    Action currentAction;
+
+    //ACTION FUNCTION
+    void Start()
+    {
+        actions = new Queue<Action>();
+    }
+    public void AddAction(Action action)
+    {
+        actions.Enqueue(action);
+    }
+    public void ClearActions()
+    {
+        actions.Clear();
+    }
+
+    IEnumerator DoActions()
+    {
+        while (actions.Count > 0)
+        {
+            if (currentAction == null)
+                currentAction = actions.Dequeue();
+
+            while (!Reached(currentAction.target, currentAction.actionRadius))
+                yield return null;
+
+            while (currentAction.DoAction())
+                yield return null;
+        }
+    }
 
     //FUNCTION
-
     public bool Reached(Entity entity)
     {
         return Reached(entity, 0f);

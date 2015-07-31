@@ -11,15 +11,6 @@ public class Entity : MonoBehaviour {
         GameObject.Destroy(gameObject);
     }
 
-    public GameObject FindChild(string obj_name)
-    {
-        foreach (Transform obj in gameObject.GetComponentsInChildren<Transform>())
-            if (obj.name == obj_name)
-                return obj.gameObject;
-        print("Can't find object " + obj_name + " in " + name);
-        return null;
-    }
-
     //BASIC
     public bool IsBasic()
     {
@@ -64,7 +55,7 @@ public class Entity : MonoBehaviour {
         get { return GetComponent<MovableEntity>(); }
     }
 
-    //MOVABLE
+    //HARVESTER
     public bool IsHarvester()
     {
         return GetComponent<HarvesterEntity>() != null;
@@ -72,5 +63,35 @@ public class Entity : MonoBehaviour {
     public HarvesterEntity harvesterProperties
     {
         get { return GetComponent<HarvesterEntity>(); }
+    }
+
+    //BUILDING
+    public bool IsBuilding()
+    {
+        return GetComponent<BuildingEntity>() != null;
+    }
+    public BuildingEntity buildingProperties
+    {
+        get { return GetComponent<BuildingEntity>(); }
+    }
+
+    //BUILDER
+    public bool IsBuilder()
+    {
+        return GetComponent<BuilderEntity>() != null;
+    }
+    public BuilderEntity builderProperties
+    {
+        get { return GetComponent<BuilderEntity>(); }
+    }
+
+    //HARVESTABLE
+    public bool IsHarvestable()
+    {
+        return GetComponent<HarvestableEntity>() != null;
+    }
+    public HarvestableEntity harvestableProperties
+    {
+        get { return GetComponent<HarvestableEntity>(); }
     }
 }

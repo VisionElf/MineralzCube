@@ -23,17 +23,20 @@ public class MainBaseEntity : Entity {
 
     void CreateWorker()
     {
-        GameObject obj = GameObject.Instantiate(workerType);
-        obj.transform.position = transform.position;
-        Entity ent = obj.GetComponent<Entity>();
-        ent.basicProperties.owner = basicProperties.owner;
-        if (ent.IsHarvester())
+        if (workerList.Count < maxWorkersCount)
         {
-            ent.harvesterProperties.mainBase = this;
-            ent.harvesterProperties.SeekHarvest();
+            GameObject obj = GameObject.Instantiate(workerType);
+            obj.transform.position = transform.position;
+            Entity ent = obj.GetComponent<Entity>();
+            ent.basicProperties.owner = basicProperties.owner;
+            if (ent.IsHarvester())
+            {
+                ent.harvesterProperties.mainBase = this;
+                ent.harvesterProperties.SeekHarvest();
+            }
+            if (ent != null)
+                workerList.Add(ent);
         }
-        if (ent != null)
-            workerList.Add(ent);
     }
 
     public void CreateWorkers(int qty)
@@ -58,7 +61,7 @@ public class MainBaseEntity : Entity {
 
     public void OrderHarvest(HarvestableEntity entity)
     {
-        if (!entity.IsHarvested() && !nextHarvestableEntities.Contains(entity))
+        if (entity != null && !entity.IsHarvested() && !nextHarvestableEntities.Contains(entity))
         {
             foreach (Entity worker in workerList)
             {
@@ -68,13 +71,32 @@ public class MainBaseEntity : Entity {
                         break;
                     else
                     {
-                        worker.harvesterProperties.Harvest(entity);
+                        worker.harvesterProperties.ActionOnEntity(entity);
                         return;
                     }
                 }
             }
 
             nextHarvestableEntities.Enqueue(entity);
+        }
+    }
+    public void OrderBuild(BuildingEntity entity)
+    {
+        if (entity != null && !entity.isBuilt)
+        {
+            foreach (Entity worker in workerList)
+            {
+                if (worker.IsBuilder() && !worker.builderProperties.IsBuildingEntity())
+                {
+                    if (Pathfinding.instance.FindPath(entity.transform.position, transform.position).Count == 0)
+                        break;
+                    else
+                    {
+                        worker.builderProperties.ActionOnEntity(entity);
+                        return;
+                    }
+                }
+            }
         }
     }
 

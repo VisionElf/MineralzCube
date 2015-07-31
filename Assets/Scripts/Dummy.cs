@@ -9,11 +9,15 @@ public class Dummy : MonoBehaviour {
     public Vector3 defaultRotation;
     public Vector3 defaultScale { get; set; }
 
+    float decalageY;
+
     //PROPERTIES
     void Awake()
     {
         defaultPosition = transform.localPosition;
         defaultScale = transform.localScale;
+        decalageY = defaultPosition.y - (defaultScale.y / 2);
+        defaultPosition -= new Vector3(0, decalageY, 0);
     }
 
     public void ScaleY(float percent)
@@ -24,7 +28,7 @@ public class Dummy : MonoBehaviour {
         {
             Show();
             transform.localScale = new Vector3(transform.localScale.x, percent * defaultScale.y, transform.localScale.z);
-            transform.localPosition = new Vector3(transform.localPosition.x, percent * defaultPosition.y, transform.localPosition.z);
+            transform.localPosition = new Vector3(transform.localPosition.x, decalageY + percent * defaultPosition.y, transform.localPosition.z);
         }
     }
 

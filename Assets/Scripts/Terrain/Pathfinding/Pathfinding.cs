@@ -22,19 +22,26 @@ public class Pathfinding : MonoBehaviour
         instance = this;
     }
 
+    //bool advance;
+
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P))
-            FindPath(start.position, end.position);
+        /*if (Input.GetKeyDown(KeyCode.P))
+            StartCoroutine(FindPath(start.position, end.position, false));
+
+        if (Input.GetKeyDown(KeyCode.O))
+            advance = true;*/
     }
 
     public List<Vector3> FindPath(Vector3 start, Vector3 end)
     {
         Collider temp;
         return FindPath(start, end, false, out temp);
+        //return new List<Vector3>();
     }
     public List<Vector3> FindPath(Vector3 start, Vector3 end, bool ignoreStructure, out Collider structureHit)
     {
+        grid.ResetColors();
         callCount++;
         Stopwatch sw = new Stopwatch();
         sw.Start();
@@ -62,6 +69,8 @@ public class Pathfinding : MonoBehaviour
         {
             Node currentNode = openList.RemoveFirst();
             closedList.Add(currentNode);
+            currentNode.color = Color.blue;
+
             if (currentNode == endNode)
             {
                 path = RetracePath(endNode, startNode);
@@ -78,7 +87,6 @@ public class Pathfinding : MonoBehaviour
                 }
                 break;
             }
-
             foreach (Node n in grid.GetNeighbours(currentNode))
             {
                 if (closedList.Contains(n))
@@ -90,13 +98,22 @@ public class Pathfinding : MonoBehaviour
                         if (!ignoreStructure || n.obstacle.tag != "Building")
                             continue;
                 }
-
+                
                 float newGScore = currentNode.gCost + grid.GetDistance(currentNode, n);
+
                 if (newGScore < n.gCost || !openList.Contains(n))
                 {
                     n.gCost = newGScore;
                     n.hCost = grid.GetDistance(n, endNode);
                     n.parent = currentNode;
+
+                    n.color = Color.magenta;
+                    /*showNodes.Add(n);
+                    advance = false;
+                    while (displayPathfinding && !advance)
+                        yield return null;*/
+
+                    n.color = Color.yellow;
 
                     if (!openList.Contains(n))
                         openList.Add(n);
@@ -104,10 +121,16 @@ public class Pathfinding : MonoBehaviour
                         openList.UpdateItem(n);
                 }
             }
+            showNodes.Remove(currentNode);
+            currentNode.color = Color.red;
         }
 
         if (path.Count > 0)
+        {
             path = BestSmooth(path, startObstacle, endObstacle);
+            foreach (Node n in path)
+                n.color = Color.green;
+        }
         return NodeListToWaypoints(path);
     }
 
@@ -184,5 +207,31 @@ public class Pathfinding : MonoBehaviour
             lastNode = bestNode;
         }
         return list;
+    }
+
+    List<Node> showNodes = new List<Node>();
+    void OnGUI()
+    {/*
+        if (displayPathfinding)
+        {
+            foreach (Node n in showNodes)
+            {
+                UnityEditor.Handles.color = Color.red;
+                UnityEditor.Handles.CubeCap(0, n.position, Quaternion.Euler(new Vector3(0, 90, 0)), 1f);
+
+                GUIStyle style = new GUIStyle();
+                style.fontSize = 8;
+                UnityEditor.Handles.color = Color.white;
+
+                string label = n.gCost + "";
+                UnityEditor.Handles.Label(n.position + new Vector3(-0.5f, 0, .5f), label, style);
+
+                label = n.hCost + "";
+                UnityEditor.Handles.Label(n.position + new Vector3(-0.5f, 0, .25f), label, style);
+
+                label = n.fCost + "";
+                UnityEditor.Handles.Label(n.position + new Vector3(-0.5f, 0, 0), label, style);
+            }
+        }*/
     }
 }

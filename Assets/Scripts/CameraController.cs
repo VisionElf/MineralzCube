@@ -6,6 +6,7 @@ public class CameraController : MonoBehaviour {
     //UNITY PROPERTIES
     public float cameraSpeed;
     public int cameraScrollingRange;
+    public bool cameraScrollActive;
 
     //FUNCTIONS
     void Start()
@@ -25,13 +26,13 @@ public class CameraController : MonoBehaviour {
     {
         if (Other.gameStarted)
         {
-            if (Input.GetKey(KeyCode.UpArrow) || Input.mousePosition.y >= Screen.height + cameraScrollingRange)
+            if (Input.GetKey(KeyCode.UpArrow) || (cameraScrollActive && Input.mousePosition.y >= Screen.height + cameraScrollingRange))
                 transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.up) * Time.deltaTime;
-            else if (Input.GetKey(KeyCode.DownArrow) || Input.mousePosition.y <= cameraScrollingRange)
+            else if (Input.GetKey(KeyCode.DownArrow) || (cameraScrollActive && Input.mousePosition.y <= cameraScrollingRange))
                 transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.down) * Time.deltaTime;
-            if (Input.GetKey(KeyCode.LeftArrow) || Input.mousePosition.x <= cameraScrollingRange)
+            if (Input.GetKey(KeyCode.LeftArrow) || (cameraScrollActive && Input.mousePosition.x <= cameraScrollingRange))
                 transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.left) * Time.deltaTime;
-            else if (Input.GetKey(KeyCode.RightArrow) || Input.mousePosition.x >= Screen.width - cameraScrollingRange)
+            else if (Input.GetKey(KeyCode.RightArrow) || (cameraScrollActive && Input.mousePosition.x >= Screen.width - cameraScrollingRange))
                 transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.right) * Time.deltaTime;
 
             if (Input.GetKeyDown(KeyCode.Escape))

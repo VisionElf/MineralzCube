@@ -2,48 +2,28 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class DepotEntity : Entity {
+[System.Serializable]
+public class ResourceContainer {
 
-    //UNTIY PROPERTIES
+    //UNTIY PROPERTY
     public bool shareResourcesStocks;
     public int maxTotalStock;
     public List<ResourceStock> resourcesStocks;
+
+
     public int dummyListStart;
     public int dummyListEnd;
 
     //PROPERTIES
+    GameObject parent;
     List<Dummy> dummyList;
     float dummyTotalSize;
 
     //FUNCTIONS
-    void Start()
+    public void Initialize(GameObject _parent)
     {
-        dummyList = new List<Dummy>();
-        for (int i = dummyListStart; i <= dummyListEnd; i++)
-        {
-            GameObject obj = FindChild("R" + i);
-            if (obj != null)
-            {
-                Dummy dummy;
-                if ((dummy = obj.GetComponent<Dummy>()) != null)
-                    dummyList.Add(dummy);
-            }
-        }
-        foreach (Dummy d in dummyList)
-            dummyTotalSize += d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;
-        RefreshDummyList();
-    }
-
-    public void RefreshDummyList()
-    {
-        float percent = GetPercentStock();
-        foreach (Dummy d in dummyList)
-        {
-            float dp = (d.defaultScale.y * d.defaultScale.x * d.defaultScale.y) / dummyTotalSize;
-
-            d.ScaleY(Mathf.Min(percent / dp, 1));
-            percent = Mathf.Max(percent - dp, 0);
-        }
+        parent = _parent;
+        CreateDummyList();
     }
 
     public int AddResource(EResourceType resourceType, int quantity)
@@ -119,12 +99,36 @@ public class DepotEntity : Entity {
     {
         return (float)GetAllResourcesStock() / GetTotalStock();
     }
-}
 
-[System.Serializable]
-public class ResourceStock
-{
-    public EResourceType resourceType;
-    public int maxStock;
-    public int stock { get; set; }
+
+    //DUMMY FUNCTIONS
+    public void CreateDummyList()
+    {
+        dummyList = new List<Dummy>();
+        for (int i = dummyListStart; i <= dummyListEnd; i++)
+        {
+            GameObject obj = Static.FindChild(parent, "R" + i);
+            if (obj != null)
+            {
+                Dummy dummy;
+                if ((dummy = obj.GetComponent<Dummy>()) != null)
+                    dummyList.Add(dummy);
+            }
+        }
+        foreach (Dummy d in dummyList)
+            dummyTotalSize += d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;
+        RefreshDummyList();
+    }
+    public void RefreshDummyList()
+    {
+        float percent = GetPercentStock();
+        foreach (Dummy d in dummyList)
+        {
+            float dp = (d.defaultScale.y * d.defaultScale.x * d.defaultScale.y) / dummyTotalSize;
+
+            d.ScaleY(Mathf.Min(percent / dp, 1));
+            percent = Mathf.Max(percent - dp, 0);
+        }
+    }
+
 }

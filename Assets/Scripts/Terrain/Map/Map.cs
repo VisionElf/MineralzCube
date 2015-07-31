@@ -46,7 +46,7 @@ public class Map : MonoBehaviour {
         [Range(0, 100)]
         public int randomFillPercent;
         public ECaseType type;
-        public GameObject obj;
+        public Entity entity;
 
         static public int Compare(FillType t1, FillType t2)
         {
@@ -111,26 +111,26 @@ public class Map : MonoBehaviour {
         int max = 0;
         foreach (int i in loadings)
             max += i;
-        Other.StartStep("Clear objects", loadings[0], max);
+        Other.StartStep("Clearing objects", loadings[0], max);
         yield return null;
         ClearObjects();
 
-        Other.NextStep("Init random", loadings[1]);
+        Other.NextStep("Initializing random", loadings[1]);
         yield return null;
         InitRandom();
 
-        Other.NextStep("Create map", loadings[2]);
+        Other.NextStep("Creating map", loadings[2]);
         yield return null;
         CreateMap();
 
         if (smoothBorder)
         {
-            Other.NextStep("Create border", loadings[3]);
+            Other.NextStep("Creating border", loadings[3]);
             yield return null;
             CreateBorder(borderSize, ECaseType.Rock);
         }
 
-        Other.NextStep("Smoothing", loadings[4]);
+        Other.NextStep("Smoothing map", loadings[4]);
         yield return null;
         for (int i = 0; i < smoothCount; i++)
         {
@@ -140,12 +140,12 @@ public class Map : MonoBehaviour {
 
         if (!smoothBorder)
         {
-            Other.NextStep("Create border", loadings[3]);
+            Other.NextStep("Creating border", loadings[3]);
             yield return null;
             CreateBorder(borderSize, ECaseType.Rock);
         }
 
-        Other.NextStep("Create objects", loadings[5]);
+        Other.NextStep("Creating objects", loadings[5]);
         yield return null;
         CreateObjects();
 
@@ -155,12 +155,13 @@ public class Map : MonoBehaviour {
 
 
         Other.NextStep("Creating pathfinding grid", loadings[7]);
-        GetComponent<Grid>().CreateGrid();
         yield return null;
+        GetComponent<Grid>().CreateGrid();
 
         Other.StopStep("Generating map", loadings[8]);
 
         GameObject.Find("Player").GetComponent<Player>().CreateStartingUnits(startingPoints[randomGenerator.Next(0, startingPoints.Count)]);
+        GameObject.Find("Player").GetComponent<Player>().OnGameStarted();
     }
 
     public void InitRandom()
@@ -240,15 +241,15 @@ public class Map : MonoBehaviour {
             for (int y = 0; y < cases.GetLength(1); y++)
             {
                 if (cases[x,y].caseType != ECaseType.Empty)
-                    CreateObjectOnMap(GetObjectFromType(cases[x,y].caseType), cases[x,y].position);
+                    CreateEntityOnMap(GetEntityFromType(cases[x,y].caseType), cases[x,y].position);
             }
         }
     }
 
-    public void CreateObjectOnMap(GameObject type, Vector3 position)
+    public void CreateEntityOnMap(Entity type, Vector3 position)
     {
-        GameObject obj = GameObject.Instantiate(type);
-        obj.transform.position = GetCasePositionAt(position);
+        GameObject obj = GameObject.Instantiate(type.gameObject);
+        obj.transform.position = SnapToGrid(position, obj.GetComponent<Entity>().buildingProperties);
         obj.GetComponentInChildren<Renderer>().gameObject.transform.position -= new Vector3(0, randomGenerator.Next(0, 100) * 0.25f / 100f, 0f);
         obj.transform.Rotate(Vector3.up * randomGenerator.Next(0, 4) * 90);
         obj.tag = "Terrain";
@@ -305,11 +306,11 @@ public class Map : MonoBehaviour {
         return isolatedCases;
     }
 
-    public GameObject GetObjectFromType(ECaseType type)
+    public Entity GetEntityFromType(ECaseType type)
     {
         foreach (FillType f in fillTypes)
             if (f.type == type)
-                return f.obj;
+                return f.entity;
         return null;
     }
 
@@ -317,10 +318,19 @@ public class Map : MonoBehaviour {
     {
         return transform.position - mapSize / 2 + new Vector3((x + 0.5f) * caseSize, 0f, (y + 0.5f) * caseSize);
     }
-    public Vector3 GetCasePositionAt(Vector3 vec)
+    public Vector3 SnapToGrid(Vector3 position, BuildingEntity building)
     {
-        return new Vector3((vec.x / caseSize), 0f, (vec.z / caseSize));
+        Vector3 dec = new Vector3();
+        position.x = Mathf.RoundToInt((position.x - caseSize / 2) / caseSize) * caseSize + caseSize / 2;
+        position.z = Mathf.RoundToInt((position.z - caseSize / 2) / caseSize) * caseSize + caseSize / 2;
+        if (building != null)
+        {
+            dec.x = (building.caseSizeX % 2 == 0) ? caseSize / 2 : 0;
+            dec.z = (building.caseSizeY % 2 == 0) ? caseSize / 2 : 0;
+        }
+        return position + dec;
     }
+
     public List<Case> GetCasesAround(Case c, int distance)
     {
         List<Case> list = new List<Case>();

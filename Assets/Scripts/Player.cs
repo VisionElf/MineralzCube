@@ -10,18 +10,24 @@ public class Player : MonoBehaviour {
     public Camera playerCamera;
     public GameObject startingUnit;
 
+    public List<BuildingEntity> buildList;
+    public GameObject previewBuildObject;
+    KeyCode[] buildShortcuts = new KeyCode[] { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7 };
+
     //PROPERTIES
     MainBaseEntity mainBase;
+
+    BuildingEntity currentBuild;
+    GameObject previewBuild;
 
     public void CreateStartingUnits(Case c)
     {
         GameObject obj = GameObject.Instantiate(startingUnit);
-        obj.transform.position = c.position;
         mainBase = obj.GetComponent<MainBaseEntity>();
+        obj.transform.position = Map.instance.SnapToGrid(c.position, mainBase.buildingProperties);
         mainBase.basicProperties.owner = this;
 
         playerCamera.GetComponent<CameraController>().PanCamera(obj.transform.position);
-        OnGameStarted();
     }
 
     public void OnGameStarted()
@@ -36,7 +42,45 @@ public class Player : MonoBehaviour {
     }
 
 
+    public void StartBuild(BuildingEntity building)
+    {
+        currentBuild = building;
+        if (previewBuild != null)
+            GameObject.Destroy(previewBuild);
+        previewBuild = GameObject.Instantiate(previewBuildObject);
+        StopCoroutine("UpdateBuild");
+        StartCoroutine("UpdateBuild");
+    }
+
     List<float> fpsList = new List<float>();
+
+    IEnumerator UpdateBuild()
+    {
+        Vector3 mousePosition = new Vector3();
+        RaycastHit hit;
+        while (!Input.GetMouseButtonDown(0) && currentBuild != null)
+        {
+            if (GameObject.Find("Grid").GetComponent<Collider>().Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hit, 50f))
+                mousePosition = hit.point;
+            previewBuild.transform.position = Map.instance.SnapToGrid(mousePosition, currentBuild);
+            if (Input.GetMouseButtonDown(1))
+                currentBuild = null;
+            yield return null;
+        }
+
+        if (currentBuild != null)
+        {
+            GameObject buildingObj = GameObject.Instantiate(currentBuild.gameObject);
+            BuildingEntity building = buildingObj.GetComponent<BuildingEntity>();
+            building.transform.position = previewBuild.transform.position;
+            building.StartBuild();
+            mainBase.OrderBuild(building);
+        }
+
+        currentBuild = null;
+        GameObject.Destroy(previewBuild);
+        previewBuild = null;
+    }
 
     void UpdateMouseButtons()
     {
@@ -57,8 +101,12 @@ public class Player : MonoBehaviour {
     }
     void UpdateKeyboardKeys()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+        if (Input.GetKeyDown(KeyCode.W))
             mainBase.CreateWorkers(5);
+
+        for (int i = 0; i < buildList.Count; i++)
+            if (Input.GetKeyDown(buildShortcuts[i]))
+                StartBuild(buildList[i]);
     }
     void Update()
     {

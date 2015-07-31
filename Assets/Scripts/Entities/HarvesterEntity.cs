@@ -2,166 +2,101 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class HarvesterEntity : Entity {
+public class HarvesterEntity : ActionEntity {
 
     //UNITY PROPERTIES
-    public float harvestSpeed;
-    public float harvestRange;
-    public int harvestQuantity;
-
-    public bool shareResourcesStock;
-    public int maxStock;
-    public List<ResourceStock> resourcesStock;
-
-    public Dummy resourceDummy;
-    Color resourceModelBaseColor;
+    public ResourceContainer resourceContainer;
 
     //PROPERTIES
-    HarvestableEntity targetEntity;
     public MainBaseEntity mainBase { get; set; }
 
     //FUNCTION
     void Start()
     {
-        RefreshResourceModel();
+        resourceContainer.Initialize(gameObject);
     }
 
-    public void Harvest(HarvestableEntity target)
-    {
-        StopHarvesting();
-        SetHarvestable(target);
-        StartHarvesting();
-    }
-
-    public bool SetHarvestable(HarvestableEntity target)
+    public override bool SetEntity(Entity target)
     {
         targetEntity = target;
         if (targetEntity != null)
-            targetEntity.SetHarvester(this);
+            GetHarvestableEntity().SetHarvester(this);
         return targetEntity != null;
+    }
+
+    public HarvestableEntity GetHarvestableEntity()
+    {
+        return targetEntity.harvestableProperties;
     }
 
     public void SeekHarvest()
     {
-        StopHarvesting();
-        if (SetHarvestable(mainBase.GetHarvestableEntity()))
-            StartHarvesting();
+        StopAction();
+        if (SetEntity(mainBase.GetHarvestableEntity()))
+            StartAction();
     }
 
-    void StartHarvesting()
+    public override void OnStartAction()
     {
-        StopCoroutine("Harvesting");
-        StartCoroutine("Harvesting");
+        base.OnStartAction();
     }
-    void StopHarvesting()
+    public override void OnStopAction()
     {
+        base.OnStopAction();
         if (targetEntity != null)
-            targetEntity.SetHarvester(null);
-        StopCoroutine("Harvesting");
+            GetHarvestableEntity().SetHarvester(null);
         targetEntity = null;
     }
 
     public bool IsHarvesting()
     {
-        return targetEntity != null;
+        return base.IsDoingAction();
     }
-    public ResourceStock GetResourceStock(EResourceType resourceType)
+    
+    public override bool ActionCondition()
     {
-        foreach (ResourceStock r in resourcesStock)
-            if (r.resourceType == resourceType)
-                return r;
-        return null;
+        return targetEntity != null && !resourceContainer.IsFull();
     }
 
-    public int GetAllResources()
-    {
-        int stock = 0;
-        foreach (ResourceStock r in resourcesStock)
-            stock += r.stock;
-        return stock;
-    }
-    public int GetTotalMaxResources()
-    {
-        if (shareResourcesStock)
-            return maxStock;
-        int stock = 0;
-        foreach (ResourceStock r in resourcesStock)
-            stock += r.maxStock;
-        return stock;
-    }
-
-    public bool IsFull()
-    {
-        return GetAllResources() == GetTotalMaxResources();
-    }
-    public float GetPercentStock()
-    {
-        return (float)GetAllResources() / GetTotalMaxResources();
-    }
-
-    public bool TryGetNewTarget()
-    {
-        if (targetEntity == null)
-            return SetHarvestable(mainBase.GetHarvestableEntity());
-        return true;
-    }
-
-    IEnumerator Harvesting()
-    {
-        while (TryGetNewTarget())
-        {
-            while (!IsFull() && TryGetNewTarget())
-            {
-                while (ReachTarget())
-                    yield return null;
-                while (HarvestTargetUntilFull())
-                    yield return new WaitForSeconds(harvestSpeed);
-            }
-
-            DepotEntity depot = basicProperties.owner.GetDepot();
-            if (!depot.IsFull())
-            {
-                while (ReachCargo(depot))
-                {
-                    TryGetNewTarget();
-                    yield return null;
-                }
-                BringCargo(depot);
-                yield return null;
-            }
-            else
-            {
-                targetEntity = null;
-                break;
-            }
-        }
-        while (ReachBase())
-            yield return null;
-    }
-
-    public bool ReachTarget()
-    {
-        return !basicProperties.Reached(targetEntity, harvestRange);
-    }
-    public bool HarvestTargetUntilFull()
+    public override bool DoAction()
     {
         if (targetEntity != null)
         {
-            ResourceStock resourceStock = GetResourceStock(targetEntity.resourceType);
-            int qty = targetEntity.Harvest(harvestQuantity);
-            if (qty + resourceStock.stock > maxStock)
-                qty = maxStock - resourceStock.stock;
-            resourceStock.stock += qty;
-            RefreshResourceModel();
-            return resourceStock.stock < maxStock && targetEntity != null;
+            resourceContainer.AddResource(GetHarvestableEntity().resourceType, GetHarvestableEntity().Harvest(Mathf.RoundToInt(actionQuantity)));
+            return !resourceContainer.IsFull() && targetEntity != null;
         }
         return false;
     }
-
-    public void RefreshResourceModel()
+    public override void OnActionDone()
     {
-        if (resourceDummy != null)
-            resourceDummy.ScaleY(GetPercentStock());
+        base.OnActionDone();
+        StopCoroutine("Cargo");
+        StartCoroutine("Cargo");
+    }
+
+    IEnumerator Cargo()
+    {
+        DepotEntity depot = basicProperties.owner.GetDepot();
+        if (!depot.resourceContainer.IsFull())
+        {
+            while (ReachCargo(depot))
+                yield return null;
+            BringCargo(depot);
+            yield return null;
+        }
+        else
+            SetEntity(null);
+
+        if (targetEntity != null && GetHarvestableEntity().GetPercentResources() > 0)
+        {
+            ActionOnEntity(targetEntity);
+        }
+        else
+        {
+            while (ReachBase())
+                yield return null;
+        }
+
     }
 
     public bool ReachCargo(DepotEntity depot)
@@ -170,9 +105,8 @@ public class HarvesterEntity : Entity {
     }
     public bool BringCargo(DepotEntity depot)
     {
-        foreach (ResourceStock r in resourcesStock)
-            r.stock -= depot.AddResource(r.resourceType, r.stock);
-        RefreshResourceModel();
+        foreach (ResourceStock r in resourceContainer.resourcesStocks)
+            resourceContainer.RemoveResource(r.resourceType, depot.resourceContainer.AddResource(r.resourceType, r.stock));
         return true;
     }
     public bool ReachBase()
