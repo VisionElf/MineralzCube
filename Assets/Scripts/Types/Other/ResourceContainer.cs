@@ -94,6 +94,10 @@ public class ResourceContainer {
     {
         return GetAllResourcesStock() == GetTotalStock();
     }
+    public bool IsEmpty()
+    {
+        return GetAllResourcesStock() == 0;
+    }
 
     public float GetPercentStock()
     {

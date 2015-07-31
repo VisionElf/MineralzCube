@@ -74,7 +74,7 @@ public class Player : MonoBehaviour {
             BuildingEntity building = buildingObj.GetComponent<BuildingEntity>();
             building.transform.position = previewBuild.transform.position;
             building.StartBuild();
-            mainBase.OrderBuild(building);
+            mainBase.AssignTask(new BuildTask(building));
         }
 
         currentBuild = null;
@@ -93,7 +93,8 @@ public class Player : MonoBehaviour {
                 {
                     if (mainBase != null)
                     {
-                        mainBase.OrderHarvest(hitInfo.collider.GetComponent<HarvestableEntity>());
+                        ResourceEntity resource = hitInfo.collider.GetComponent<ResourceEntity>();
+                        mainBase.AssignTask(new HarvestTask(resource));
                     }
                 }
             }

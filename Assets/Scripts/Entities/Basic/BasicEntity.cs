@@ -33,10 +33,10 @@ public class BasicEntity : Entity {
             if (currentAction == null)
                 currentAction = actions.Dequeue();
 
-            while (!Reached(currentAction.target, currentAction.actionRadius))
+            while (!Reached(currentAction.target))
                 yield return null;
 
-            while (currentAction.DoAction())
+            while (currentAction.DoAction(this))
                 yield return null;
         }
     }
@@ -65,10 +65,13 @@ public class BasicEntity : Entity {
     }
     public bool CanReach(Entity entity, float range)
     {
+        if (entity == null)
+            return false;
         if (Vector3.Distance(entity.transform.position, transform.position) <= range + entity.basicProperties.radius + radius)
             return true;
-        else
-            return IsMovable();
+        else if (IsMovable())
+            return Pathfinding.instance.PathExists(transform.position, entity.transform.position);
+        return false;
     }
 
     public void LookAt(Vector3 target)

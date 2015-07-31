@@ -4,14 +4,12 @@ using System.Collections;
 public class Action {
 
     //PROPERTIES
-    public float actionRadius;
     public Entity target;
 
-    public Action(Entity _target, float _actionRadius)
+    public Action(Entity _target)
     {
-        actionRadius = _actionRadius;
         target = _target;
     }
 
-    public bool DoAction() { return false; }
+    public virtual bool DoAction(Entity parent) { return false; }
 }

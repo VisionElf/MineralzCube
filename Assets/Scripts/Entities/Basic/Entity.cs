@@ -11,6 +11,13 @@ public class Entity : MonoBehaviour {
         GameObject.Destroy(gameObject);
     }
 
+    //PROPERTIES
+    public Color color
+    {
+        get { return GetComponentInChildren<Renderer>().material.color; }
+        set { GetComponentInChildren<Renderer>().material.color = value; }
+    }
+
     //BASIC
     public bool IsBasic()
     {
@@ -56,13 +63,13 @@ public class Entity : MonoBehaviour {
     }
 
     //HARVESTER
-    public bool IsHarvester()
+    public bool IsWorker()
     {
-        return GetComponent<HarvesterEntity>() != null;
+        return GetComponent<WorkerEntity>() != null;
     }
-    public HarvesterEntity harvesterProperties
+    public WorkerEntity workerProperties
     {
-        get { return GetComponent<HarvesterEntity>(); }
+        get { return GetComponent<WorkerEntity>(); }
     }
 
     //BUILDING
@@ -75,23 +82,13 @@ public class Entity : MonoBehaviour {
         get { return GetComponent<BuildingEntity>(); }
     }
 
-    //BUILDER
-    public bool IsBuilder()
-    {
-        return GetComponent<BuilderEntity>() != null;
-    }
-    public BuilderEntity builderProperties
-    {
-        get { return GetComponent<BuilderEntity>(); }
-    }
-
     //HARVESTABLE
-    public bool IsHarvestable()
+    public bool IsResource()
     {
-        return GetComponent<HarvestableEntity>() != null;
+        return GetComponent<ResourceEntity>() != null;
     }
-    public HarvestableEntity harvestableProperties
+    public ResourceEntity resourceProperties
     {
-        get { return GetComponent<HarvestableEntity>(); }
+        get { return GetComponent<ResourceEntity>(); }
     }
 }

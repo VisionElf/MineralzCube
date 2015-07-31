@@ -33,6 +33,10 @@ public class Pathfinding : MonoBehaviour
             advance = true;*/
     }
 
+    public bool PathExists(Vector3 start, Vector3 end)
+    {
+        return FindPath(start, end).Count > 0;
+    }
     public List<Vector3> FindPath(Vector3 start, Vector3 end)
     {
         Collider temp;

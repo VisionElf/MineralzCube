@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class HarvestableEntity : Entity {
+public class ResourceEntity : Entity {
 
     //UNITY PROPERTIES
     public int maxResources;
@@ -15,7 +15,7 @@ public class HarvestableEntity : Entity {
     //PRIVATE PROPERTIES
     int resources;
 
-    HarvesterEntity harvester;
+    Entity harvester;
 
     //UNITY FUNCTIONS
     void Start()
@@ -37,13 +37,18 @@ public class HarvestableEntity : Entity {
             RemoveObject();
         return quantity;
     }
-    public void SetHarvester(HarvesterEntity entity)
+    public void SetHarvester(Entity entity)
     {
         harvester = entity;
     }
     public bool IsHarvested()
     {
         return harvester != null;
+    }
+
+    public bool Empty()
+    {
+        return resources <= 0;
     }
 
     public void RefreshResourceModel()

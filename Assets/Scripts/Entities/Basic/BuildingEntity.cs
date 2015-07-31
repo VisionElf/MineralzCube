@@ -8,12 +8,13 @@ public class BuildingEntity : Entity {
     public int caseSizeX;
     public int caseSizeY;
 
+    public Dummy buildingDummy;
+
     //PROPERTIES
     public bool isBuilt { get; set; }
     int buildResources;
 
     //FUNCTIONS
-
     public void StartBuild()
     {
         isBuilt = false;
@@ -22,9 +23,17 @@ public class BuildingEntity : Entity {
             healthProperties.health = 1;
     }
 
-    public void Build(float percent)
+    public int Build(int resources)
     {
-        buildResources += (int)(percent * cost);
+        if (resources > GetRemainingResources())
+            resources = GetRemainingResources();
+        buildResources += resources;
+        healthProperties.AddPercentHealth((float)resources / cost);
+        return resources;
+    }
+    public int GetRemainingResources()
+    {
+        return cost - buildResources;
     }
 
 }

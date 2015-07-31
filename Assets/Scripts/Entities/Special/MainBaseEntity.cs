@@ -7,17 +7,17 @@ public class MainBaseEntity : Entity {
     //UNITY PROPERTIES
     public int maxWorkersCount;
     public int startingWorkersCount;
-    public GameObject workerType;
+    public WorkerEntity workerType;
 
     //PROPERTIES
-    List<Entity> workerList;
+    List<WorkerEntity> workerList;
 
-    Queue<HarvestableEntity> nextHarvestableEntities;
+    TaskQueue taskQueue;
 
     void Start()
     {
-        workerList = new List<Entity>();
-        nextHarvestableEntities = new Queue<HarvestableEntity>();
+        workerList = new List<WorkerEntity>();
+        taskQueue = new TaskQueue();
         CreateWorkers(startingWorkersCount);
     }
 
@@ -25,18 +25,45 @@ public class MainBaseEntity : Entity {
     {
         if (workerList.Count < maxWorkersCount)
         {
-            GameObject obj = GameObject.Instantiate(workerType);
+            GameObject obj = GameObject.Instantiate(workerType.gameObject);
             obj.transform.position = transform.position;
-            Entity ent = obj.GetComponent<Entity>();
+            WorkerEntity ent = obj.GetComponent<WorkerEntity>();
             ent.basicProperties.owner = basicProperties.owner;
-            if (ent.IsHarvester())
-            {
-                ent.harvesterProperties.mainBase = this;
-                ent.harvesterProperties.SeekHarvest();
-            }
-            if (ent != null)
-                workerList.Add(ent);
+            ent.mainBase = this;
+            ent.RequestTask();
+            workerList.Add(ent);
         }
+    }
+
+    public void AssignTask(Task task)
+    {
+        if (!taskQueue.Contains(task))
+        {
+            taskQueue.Add(task);
+            foreach (WorkerEntity w in workerList)
+                if (!w.IsWorking())
+                    w.RequestTask();
+        }
+    }
+    public void RemoveTask(Task task)
+    {
+        if (!task.Unassigned())
+            task.UnassignAllWorkers();
+        task.OnRemove();
+        taskQueue.Remove(task);
+    }
+    public Task GetNextTask()
+    {
+        Task temp = taskQueue.GetNextTask();
+        if (temp != null)
+        {
+            if (!Pathfinding.instance.PathExists(transform.position, temp.GetTarget().transform.position))
+            {
+                RemoveTask(temp);
+                return GetNextTask();
+            }
+        }
+        return temp;
     }
 
     public void CreateWorkers(int qty)
@@ -44,80 +71,4 @@ public class MainBaseEntity : Entity {
         for (int i = 0; i < qty; i++)
             CreateWorker();
     }
-
-    public HarvestableEntity GetHarvestableEntity()
-    {
-        if (nextHarvestableEntities.Count > 0)
-        {
-            HarvestableEntity entity = nextHarvestableEntities.Dequeue();
-            bool reachable = Pathfinding.instance.FindPath(entity.transform.position, transform.position).Count > 0;
-            if (reachable)
-                return entity;
-            else
-                return GetHarvestableEntity();
-        }
-        return null;
-    }
-
-    public void OrderHarvest(HarvestableEntity entity)
-    {
-        if (entity != null && !entity.IsHarvested() && !nextHarvestableEntities.Contains(entity))
-        {
-            foreach (Entity worker in workerList)
-            {
-                if (worker.IsHarvester() && !worker.harvesterProperties.IsHarvesting())
-                {
-                    if (Pathfinding.instance.FindPath(entity.transform.position, transform.position).Count == 0)
-                        break;
-                    else
-                    {
-                        worker.harvesterProperties.ActionOnEntity(entity);
-                        return;
-                    }
-                }
-            }
-
-            nextHarvestableEntities.Enqueue(entity);
-        }
-    }
-    public void OrderBuild(BuildingEntity entity)
-    {
-        if (entity != null && !entity.isBuilt)
-        {
-            foreach (Entity worker in workerList)
-            {
-                if (worker.IsBuilder() && !worker.builderProperties.IsBuildingEntity())
-                {
-                    if (Pathfinding.instance.FindPath(entity.transform.position, transform.position).Count == 0)
-                        break;
-                    else
-                    {
-                        worker.builderProperties.ActionOnEntity(entity);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    void OnGUI()
-    {
-        int i = 0;
-        foreach (HarvestableEntity h in nextHarvestableEntities)
-        {
-            if (h != null)
-            {
-                Vector3 pos = basicProperties.owner.playerCamera.WorldToScreenPoint(h.transform.position);
-                pos.y = Screen.height - pos.y;
-
-                Rect rect = new Rect(pos.x - 10, pos.y - 10, 40, 40);
-                GUI.color = Color.red;
-                GUI.Label(rect, "N" + i);
-            }
-            i++;
-        }
-
-        i = 0;
-    }
-
 }
