@@ -135,6 +135,8 @@ public class Player : MonoBehaviour {
             y += 20;
             GUI.Label(new Rect(0, y, 200, 100), "Pathfinding Count: " + Pathfinding.instance.callCount);
             y += 20;
+            GUI.Label(new Rect(0, y, 200, 100), "Task Count: " + mainBase.GetTaskCount());
+            y += 20;
 
             int size = 1;
             int width = 300;

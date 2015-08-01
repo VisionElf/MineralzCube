@@ -46,11 +46,11 @@ public class Dummy : MonoBehaviour {
         color = defaultMaterial.color;
     }
 
-    void Hide()
+    public void Hide()
     {
         gameObject.SetActive(false);
     }
-    void Show()
+    public void Show()
     {
         gameObject.SetActive(true);
     }

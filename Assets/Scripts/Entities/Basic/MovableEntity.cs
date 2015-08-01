@@ -24,6 +24,8 @@ public class MovableEntity : Entity {
 
     public void MoveTowards(Vector3 destination)
     {
+        if (destination == transform.position)
+            return;
         if (targetDestination != destination)
             FindWaypoints(destination);
 

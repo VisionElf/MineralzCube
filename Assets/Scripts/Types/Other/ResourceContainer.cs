@@ -47,6 +47,15 @@ public class ResourceContainer {
         else
             return 0;
     }
+
+    public int RemoveResource(EResourceType resourceType)
+    {
+        ResourceStock resourceStock = GetResourceStock(resourceType);
+        if (resourceStock != null)
+            return RemoveResource(resourceStock.resourceType, resourceStock.stock);
+        else
+            return 0;
+    }
     public int RemoveResource(EResourceType resourceType, int quantity)
     {
         ResourceStock resourceStock = GetResourceStock(resourceType);
@@ -88,6 +97,11 @@ public class ResourceContainer {
                 total += r.maxStock;
             return total;
         }
+    }
+
+    public int GetEmptyPlace()
+    {
+        return GetTotalStock() - GetAllResourcesStock();
     }
 
     public bool IsFull()

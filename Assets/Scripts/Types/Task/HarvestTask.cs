@@ -16,16 +16,12 @@ public class HarvestTask : Task {
         return resource;
     }
 
-    public override bool DoTask(Entity entity)
+    public override bool DoTask(WorkerEntity worker)
     {
-        if (resource != null && entity != null)
-        {
-            WorkerEntity worker = entity.workerProperties;
-            if (!worker.HarvestResource(resource))
-                worker.BringCargo();
-            return true;
-        }
-        return false;
+        if (!worker.HarvestResource(resource))
+            if (!worker.BringCargo(resource))
+                return false;
+        return true;
     }
 
     public override void OnAdd()

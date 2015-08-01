@@ -66,6 +66,11 @@ public class MainBaseEntity : Entity {
         return temp;
     }
 
+    public int GetTaskCount()
+    {
+        return taskQueue.Count();
+    }
+
     public void CreateWorkers(int qty)
     {
         for (int i = 0; i < qty; i++)

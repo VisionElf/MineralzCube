@@ -37,6 +37,18 @@ public class ResourceEntity : Entity {
             RemoveObject();
         return quantity;
     }
+    public int AddResources(int quantity)
+    {
+        if (quantity + resources > maxResources)
+            quantity = maxResources - resources;
+        resources += quantity;
+        return quantity;
+    }
+    public int GetRemainingResources()
+    {
+        return resources;
+    }
+
     public void SetHarvester(Entity entity)
     {
         harvester = entity;

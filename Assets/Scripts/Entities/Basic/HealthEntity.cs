@@ -38,6 +38,10 @@ public class HealthEntity : Entity {
     {
         health += percent * maxHealth;
     }
+    public void RemovePercentHealth(float percent)
+    {
+        health -= percent * maxHealth;
+    }
 
 
     public bool IsDead()

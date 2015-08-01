@@ -16,16 +16,12 @@ public class BuildTask : Task {
         return building;
     }
 
-    public override bool DoTask(Entity entity)
+    public override bool DoTask(WorkerEntity worker)
     {
-        if (building != null && !building.isBuilt)
-        {
-            WorkerEntity worker = entity.workerProperties;
-            if (!worker.BuildBuilding(building))
-                worker.GatherCargo(building);
-            return true;
-        }
-        return false;
+        if (!worker.BuildBuilding(building))
+            if (!worker.GatherCargo(building))
+                return false;
+        return true;
     }
 
 

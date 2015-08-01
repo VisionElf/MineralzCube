@@ -45,6 +45,6 @@ public class Task {
     public virtual void OnAdd() { }
     public virtual void OnRemove() { }
     public virtual Entity GetTarget() { return null; }
-    public virtual bool DoTask(Entity worker) { return false; }
+    public virtual bool DoTask(WorkerEntity worker) { return false; }
     
 }

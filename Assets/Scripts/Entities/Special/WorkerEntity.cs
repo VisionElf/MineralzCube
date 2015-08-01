@@ -32,7 +32,12 @@ public class WorkerEntity : Entity {
         if (!resourceContainer.IsFull() && (resource != null || !resource.Empty()))
         {
             if (basicProperties.Reached(resource, harvestRange))
-                resourceContainer.AddResource(resource.resourceType, resource.Harvest(harvestQuantity));
+            {
+                int bestQty = Mathf.Min(harvestQuantity, resource.GetRemainingResources(), resourceContainer.GetEmptyPlace());
+
+                resourceContainer.AddResource(resource.resourceType, bestQty);
+                resource.Harvest(bestQty);
+            }
             return true;
         }
         return false;
@@ -42,7 +47,12 @@ public class WorkerEntity : Entity {
         if (!resourceContainer.IsEmpty() && (building != null || !building.isBuilt))
         {
             if (basicProperties.Reached(building, harvestRange))
-                building.Build(resourceContainer.RemoveResource(EResourceType.Rock, buildQuantity));
+            {
+                int bestQty = Mathf.Min(buildQuantity, building.GetRemainingResources(), resourceContainer.GetAllResourcesStock());
+
+                resourceContainer.RemoveResource(EResourceType.Rock, buildQuantity);
+                building.Build(bestQty);
+            }
             return true;
         }
         return false;
@@ -51,15 +61,17 @@ public class WorkerEntity : Entity {
     {
         return !basicProperties.Reached(mainBase, -mainBase.basicProperties.radius);
     }
-
-    public bool BringCargo()
+    
+    public bool BringCargo(ResourceEntity resource)
     {
         DepotEntity depot = basicProperties.owner.GetDepot();
         if (basicProperties.Reached(depot))
         {
-            foreach (ResourceStock r in resourceContainer.resourcesStocks)
-                depot.resourceContainer.AddResource(r.resourceType, resourceContainer.RemoveResource(r.resourceType, r.stock));
-            return false;
+            int bestQty = Mathf.Min(resourceContainer.GetAllResourcesStock(), depot.resourceContainer.GetEmptyPlace());
+
+            resourceContainer.RemoveResource(EResourceType.Rock);
+            depot.resourceContainer.AddResource(EResourceType.Rock, bestQty);
+            return resource != null;
         }
         return true;
     }
@@ -68,10 +80,12 @@ public class WorkerEntity : Entity {
         DepotEntity depot = basicProperties.owner.GetDepot();
         if (basicProperties.Reached(depot))
         {
-            foreach (ResourceStock r in resourceContainer.resourcesStocks)
-                resourceContainer.AddResource(r.resourceType, depot.resourceContainer.RemoveResource(r.resourceType,
-                    (int)Mathf.Min(r.stock, depot.resourceContainer.GetResourceStock(r.resourceType).stock, building.GetRemainingResources())));
-            return false;
+            int bestQty = Mathf.Min(building.GetRemainingResources(), resourceContainer.GetEmptyPlace(), depot.resourceContainer.GetResourceStock(EResourceType.Rock).stock);
+            
+            depot.resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
+            resourceContainer.AddResource(EResourceType.Rock, bestQty);
+
+            return !building.isBuilt;
         }
         return true;
     }

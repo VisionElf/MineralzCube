@@ -36,6 +36,11 @@ public class TaskQueue {
         return false;
     }
 
+    public int Count()
+    {
+        return tasks.Count;
+    }
+
     public Task GetNextTask()
     {
         foreach (Task t in tasks)

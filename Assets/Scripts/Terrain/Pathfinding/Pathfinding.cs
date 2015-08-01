@@ -67,6 +67,9 @@ public class Pathfinding : MonoBehaviour
         Heap<Node> openList = new Heap<Node>(grid.gridSize);
         HashSet<Node> closedList = new HashSet<Node>();
 
+        if (startNode == endNode)
+            return new List<Vector3>() { end };
+
         openList.Add(startNode);
 
         while (openList.Count > 0)
