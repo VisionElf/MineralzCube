@@ -6,7 +6,7 @@ public class BuildTask : Task {
     BuildingEntity building;
 
     public BuildTask(BuildingEntity _building)
-        : base(_building.caseSizeX * _building.caseSizeY)
+        : base(1)//_building.caseSizeX * _building.caseSizeY)
     {
         building = _building;
     }
@@ -16,14 +16,20 @@ public class BuildTask : Task {
         return building;
     }
 
+
     public override bool DoTask(WorkerEntity worker)
     {
         if (!worker.BuildBuilding(building))
             if (!worker.GatherCargo(building))
-                return false;
+                return !building.isBuilt;
         return true;
     }
 
+    public override bool PauseCondition(WorkerEntity worker)
+    {
+        paused = worker.resourceContainer.IsEmpty() && worker.basicProperties.owner.GetAvailableResources() == 0;
+        return paused;
+    }
 
     public override void OnAdd()
     {
@@ -37,6 +43,13 @@ public class BuildTask : Task {
     public override void OnUpdateAssign()
     {
         if (building != null)
-            building.buildingDummy.color = Assigned() ? new Color(0, 0.5f, 0f) : new Color(0.5f, 0, 0f);
+        {
+            if (Paused())
+                building.buildingDummy.SetColor(0.5f, 0.5f, 0f);
+            else if (Assigned())
+                building.buildingDummy.SetColor(0, 0.5f, 0f);
+            else
+                building.buildingDummy.SetColor(0.5f, 0, 0f);
+        }
     }
 }

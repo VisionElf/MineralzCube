@@ -6,6 +6,7 @@ public class Task {
 
     int maxAssign;
     List<Entity> workersList;
+    protected bool paused;
 
     public Task(int _maxAssign)
     {
@@ -32,6 +33,7 @@ public class Task {
         OnUpdateAssign();
     }
 
+
     public bool Assigned()
     {
         return workersList.Count == maxAssign;
@@ -40,6 +42,9 @@ public class Task {
     {
         return workersList.Count == 0;
     }
+
+    public bool Paused() { return paused; }
+    public virtual bool PauseCondition(WorkerEntity worker) { return false; }
 
     public virtual void OnUpdateAssign() { }
     public virtual void OnAdd() { }

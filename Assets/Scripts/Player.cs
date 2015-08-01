@@ -16,6 +16,7 @@ public class Player : MonoBehaviour {
 
     //PROPERTIES
     MainBaseEntity mainBase;
+    List<DepotEntity> depots = new List<DepotEntity>();
 
     BuildingEntity currentBuild;
     GameObject previewBuild;
@@ -26,8 +27,10 @@ public class Player : MonoBehaviour {
         mainBase = obj.GetComponent<MainBaseEntity>();
         obj.transform.position = Map.instance.SnapToGrid(c.position, mainBase.buildingProperties);
         mainBase.basicProperties.owner = this;
+        mainBase.buildingProperties.OnBuildFinish();
 
         playerCamera.GetComponent<CameraController>().PanCamera(obj.transform.position);
+        depots.Add(mainBase.depotProperties);
     }
 
     public void OnGameStarted()
@@ -36,20 +39,75 @@ public class Player : MonoBehaviour {
         GameObject.Find("LoadingScreen").SetActive(false);
     }
 
-    public DepotEntity GetDepot()
+    public DepotEntity GetNearestDepotNotEmpty(Vector3 position)
     {
-        return mainBase.depotProperties;
+        DepotEntity nearestDepot = null;
+        float minDistance = 0f;
+        foreach (DepotEntity depot in depots)
+        {
+            if (depot.buildingProperties.isBuilt && !depot.IsEmpty() && Pathfinding.instance.PathExists(depot.transform.position, position))
+            {
+                float distance = Vector3.Distance(depot.transform.position, position);
+                if (distance < minDistance || nearestDepot == null)
+                {
+                    nearestDepot = depot;
+                    minDistance = distance;
+                }
+            }
+        }
+        return nearestDepot;
+    }
+    public DepotEntity GetNearestDepotNotFull(Vector3 position)
+    {
+        DepotEntity nearestDepot = null;
+        float minDistance = 0f;
+        foreach (DepotEntity depot in depots)
+        {
+            if (depot.buildingProperties.isBuilt && !depot.IsFull() && Pathfinding.instance.PathExists(depot.transform.position, position))
+            {
+                float distance = Vector3.Distance(depot.transform.position, position);
+                if (distance < minDistance || nearestDepot == null)
+                {
+                    nearestDepot = depot;
+                    minDistance = distance;
+                }
+            }
+        }
+        return nearestDepot;
+    }
+
+    public int GetAvailableResources()
+    {
+        int count = 0;
+        foreach (DepotEntity depot in depots)
+            count += depot.resourceContainer.GetAllResourcesStock();
+        return count;
     }
 
 
-    public void StartBuild(BuildingEntity building)
+    public void PlaceBuilding(BuildingEntity building)
     {
         currentBuild = building;
         if (previewBuild != null)
             GameObject.Destroy(previewBuild);
         previewBuild = GameObject.Instantiate(previewBuildObject);
+        previewBuild.transform.localScale = new Vector3(building.caseSizeX, 1, building.caseSizeY);
         StopCoroutine("UpdateBuild");
         StartCoroutine("UpdateBuild");
+    }
+    public void StartBuild()
+    {
+        if (currentBuild != null)
+        {
+            GameObject buildingObj = GameObject.Instantiate(currentBuild.gameObject);
+            BuildingEntity building = buildingObj.GetComponent<BuildingEntity>();
+            building.transform.position = previewBuild.transform.position;
+            building.StartBuild();
+            if (building.HaveDepot())
+                depots.Add(building.depotProperties);
+            mainBase.AssignTask(new BuildTask(building));
+            currentBuild = null;
+        }
     }
 
     List<float> fpsList = new List<float>();
@@ -68,16 +126,7 @@ public class Player : MonoBehaviour {
             yield return null;
         }
 
-        if (currentBuild != null)
-        {
-            GameObject buildingObj = GameObject.Instantiate(currentBuild.gameObject);
-            BuildingEntity building = buildingObj.GetComponent<BuildingEntity>();
-            building.transform.position = previewBuild.transform.position;
-            building.StartBuild();
-            mainBase.AssignTask(new BuildTask(building));
-        }
-
-        currentBuild = null;
+        StartBuild();
         GameObject.Destroy(previewBuild);
         previewBuild = null;
     }
@@ -107,7 +156,7 @@ public class Player : MonoBehaviour {
 
         for (int i = 0; i < buildList.Count; i++)
             if (Input.GetKeyDown(buildShortcuts[i]))
-                StartBuild(buildList[i]);
+                PlaceBuilding(buildList[i]);
     }
     void Update()
     {
@@ -128,14 +177,16 @@ public class Player : MonoBehaviour {
                 avgFps += f;
             avgFps /= fpsList.Count;
 
+            int textWidth = 300;
+
             int y = 0;
-            GUI.Label(new Rect(0, y, 200, 100), "FPS: " + Math.Round(fps, 2));
+            GUI.Label(new Rect(0, y, textWidth, 100), "FPS: " + Math.Round(fps, 2));
             y += 20;
-            GUI.Label(new Rect(0, y, 200, 100), "Average FPS: " + Math.Round(avgFps, 2));
+            GUI.Label(new Rect(0, y, textWidth, 100), "Average FPS: " + Math.Round(avgFps, 2));
             y += 20;
-            GUI.Label(new Rect(0, y, 200, 100), "Pathfinding Count: " + Pathfinding.instance.callCount);
+            GUI.Label(new Rect(0, y, textWidth, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount + " (" + Pathfinding.instance.cacheCount + " cached)");
             y += 20;
-            GUI.Label(new Rect(0, y, 200, 100), "Task Count: " + mainBase.GetTaskCount());
+            GUI.Label(new Rect(0, y, textWidth, 100), "Task Count: " + mainBase.GetTaskCount());
             y += 20;
 
             int size = 1;

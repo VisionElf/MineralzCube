@@ -11,6 +11,12 @@ public class Entity : MonoBehaviour {
         GameObject.Destroy(gameObject);
     }
 
+    public void ApplyPathMap()
+    {
+        GetComponentInChildren<Collider>().enabled = true;
+        Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+    }
+
     //PROPERTIES
     public Color color
     {

@@ -9,11 +9,8 @@ public class BuildingEntity : Entity {
     public int caseSizeY;
 
     public Dummy buildingDummy;
-
-    public GameObject GetModel()
-    {
-        return GetComponentInChildren<Renderer>().gameObject;
-    }
+    public GameObject model;
+    public float sizeY;
 
     //PROPERTIES
     public bool isBuilt { get; set; }
@@ -22,10 +19,14 @@ public class BuildingEntity : Entity {
     float defaultY;
 
     //FUNCTIONS
+    void Start()
+    {
+        ApplyPathMap();
+    }
+
     public void StartBuild()
     {
-        defaultY = GetModel().transform.localPosition.y;
-        GetModel().transform.localPosition = new Vector3(0, -defaultY, 0);
+        model.transform.localPosition = new Vector3(0, -sizeY, 0);
         isBuilt = false;
         buildResources = 0;
         if (HaveHealth())
@@ -37,7 +38,9 @@ public class BuildingEntity : Entity {
         if (resources > GetRemainingResources())
             resources = GetRemainingResources();
         buildResources += resources;
-        healthProperties.AddPercentHealth((float)resources / cost);
+
+        if (HaveHealth())
+            healthProperties.AddPercentHealth((float)resources / cost);
         RefreshBuilding();
 
         if (GetBuildingProgress() >= 1)
@@ -47,12 +50,13 @@ public class BuildingEntity : Entity {
 
     public void RefreshBuilding()
     {
-        GetModel().transform.localPosition = new Vector3(0, -defaultY + (defaultY * 2) * GetBuildingProgress(), 0);
+        model.transform.localPosition = new Vector3(0, -sizeY + sizeY * GetBuildingProgress(), 0);
     }
 
     public void OnBuildFinish()
     {
-        buildingDummy.Hide();
+        if (buildingDummy != null)
+            buildingDummy.Hide();
         isBuilt = true;
     }
 

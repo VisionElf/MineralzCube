@@ -12,4 +12,15 @@ public class DepotEntity : Entity {
     {
         resourceContainer.Initialize(gameObject);
     }
+
+
+    public bool IsEmpty()
+    {
+        return resourceContainer.IsEmpty();
+    }
+    
+    public bool IsFull()
+    {
+        return resourceContainer.IsFull();
+    }
 }

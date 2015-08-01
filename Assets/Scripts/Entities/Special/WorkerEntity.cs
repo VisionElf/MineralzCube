@@ -18,6 +18,7 @@ public class WorkerEntity : Entity {
 
     //PROPERTIES
     public MainBaseEntity mainBase { get; set; }
+    DepotEntity currentNearestDepot;
 
     Task currentTask;
 
@@ -44,13 +45,13 @@ public class WorkerEntity : Entity {
     }
     public bool BuildBuilding(BuildingEntity building)
     {
-        if (!resourceContainer.IsEmpty() && (building != null || !building.isBuilt))
+        if (!resourceContainer.IsEmpty() && (building != null && !building.isBuilt))
         {
             if (basicProperties.Reached(building, harvestRange))
             {
                 int bestQty = Mathf.Min(buildQuantity, building.GetRemainingResources(), resourceContainer.GetAllResourcesStock());
 
-                resourceContainer.RemoveResource(EResourceType.Rock, buildQuantity);
+                resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
                 building.Build(bestQty);
             }
             return true;
@@ -62,30 +63,35 @@ public class WorkerEntity : Entity {
         return !basicProperties.Reached(mainBase, -mainBase.basicProperties.radius);
     }
     
-    public bool BringCargo(ResourceEntity resource)
+    public bool BringCargo()
     {
-        DepotEntity depot = basicProperties.owner.GetDepot();
-        if (basicProperties.Reached(depot))
-        {
-            int bestQty = Mathf.Min(resourceContainer.GetAllResourcesStock(), depot.resourceContainer.GetEmptyPlace());
+        if (currentNearestDepot == null)
+            currentNearestDepot = basicProperties.owner.GetNearestDepotNotFull(transform.position);
 
-            resourceContainer.RemoveResource(EResourceType.Rock);
-            depot.resourceContainer.AddResource(EResourceType.Rock, bestQty);
-            return resource != null;
+        if (basicProperties.Reached(currentNearestDepot))
+        {
+            int bestQty = Mathf.Min(resourceContainer.GetAllResourcesStock(), currentNearestDepot.resourceContainer.GetEmptyPlace());
+
+            resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
+            currentNearestDepot.resourceContainer.AddResource(EResourceType.Rock, bestQty);
+            currentNearestDepot = null;
+            return false;
         }
         return true;
     }
     public bool GatherCargo(BuildingEntity building)
     {
-        DepotEntity depot = basicProperties.owner.GetDepot();
-        if (basicProperties.Reached(depot))
-        {
-            int bestQty = Mathf.Min(building.GetRemainingResources(), resourceContainer.GetEmptyPlace(), depot.resourceContainer.GetResourceStock(EResourceType.Rock).stock);
-            
-            depot.resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
-            resourceContainer.AddResource(EResourceType.Rock, bestQty);
+        if (currentNearestDepot == null)
+            currentNearestDepot = basicProperties.owner.GetNearestDepotNotEmpty(transform.position);
 
-            return !building.isBuilt;
+        if (basicProperties.Reached(currentNearestDepot))
+        {
+            int bestQty = Mathf.Min(building.GetRemainingResources(), resourceContainer.GetEmptyPlace(), currentNearestDepot.resourceContainer.GetResourceStock(EResourceType.Rock).stock);
+
+            currentNearestDepot.resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
+            resourceContainer.AddResource(EResourceType.Rock, bestQty);
+            currentNearestDepot = null;
+            return false;
         }
         return true;
     }
@@ -98,9 +104,7 @@ public class WorkerEntity : Entity {
 
     public void RequestTask()
     {
-        if (currentTask != null)
-            mainBase.RemoveTask(currentTask);
-        Task nextTask = mainBase.GetNextTask();
+        Task nextTask = mainBase.GetNextTask(this);
         if (nextTask != null)
             AssignTask(nextTask);
     }
@@ -108,6 +112,7 @@ public class WorkerEntity : Entity {
     public void AssignTask(Task task)
     {
         StopCoroutine("Task");
+        currentNearestDepot = null;
         currentTask = task;
         if (currentTask != null && basicProperties.CanReach(task.GetTarget()))
         {
@@ -123,15 +128,20 @@ public class WorkerEntity : Entity {
     }
     public void OnTaskDone()
     {
+        if (currentTask != null)
+            mainBase.RemoveTask(currentTask);
         RequestTask();
     }
 
     IEnumerator Task()
     {
-        while (currentTask.DoTask(this))
+        while (currentTask != null && !currentTask.PauseCondition(this) && currentTask.DoTask(this))
             yield return null;
 
         OnTaskDone();
+
+        while (!resourceContainer.IsEmpty() && BringCargo())
+            yield return null;
         while (BackToBase())
             yield return null;
     }

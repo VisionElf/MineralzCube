@@ -19,8 +19,8 @@ public class HarvestTask : Task {
     public override bool DoTask(WorkerEntity worker)
     {
         if (!worker.HarvestResource(resource))
-            if (!worker.BringCargo(resource))
-                return false;
+            if (!worker.BringCargo())
+                return resource != null;
         return true;
     }
 

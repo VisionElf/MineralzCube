@@ -20,6 +20,11 @@ public class ResourceContainer {
     float dummyTotalSize;
 
     //FUNCTIONS
+    public ResourceContainer()
+    {
+        dummyList = new List<Dummy>();
+    }
+
     public void Initialize(GameObject _parent)
     {
         parent = _parent;

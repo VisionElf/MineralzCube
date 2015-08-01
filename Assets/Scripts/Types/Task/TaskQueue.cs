@@ -50,4 +50,18 @@ public class TaskQueue {
         }
         return null;
     }
+    public Task GetNextTask(WorkerEntity worker)
+    {
+        foreach (Task t in tasks)
+        {
+            if (t.Paused() && !t.PauseCondition(worker) && !t.Assigned())
+                return t;
+        }
+        foreach (Task t in tasks)
+        {
+            if (!t.Assigned() && !t.Paused())
+                return t;
+        }
+        return null;
+    }
 }

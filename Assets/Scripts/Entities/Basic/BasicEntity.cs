@@ -48,6 +48,11 @@ public class BasicEntity : Entity {
     }
     public bool Reached(Entity entity, float range)
     {
+        if (entity == null)
+        {
+            print("reached: entity is null, parent is " + name);
+            return false;
+        }
         float distance = Vector3.Distance(entity.transform.position, transform.position);
         float distanceRange = range + entity.basicProperties.radius + radius;
         if (distance > distanceRange)

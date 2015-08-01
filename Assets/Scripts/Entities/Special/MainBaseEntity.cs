@@ -30,8 +30,8 @@ public class MainBaseEntity : Entity {
             WorkerEntity ent = obj.GetComponent<WorkerEntity>();
             ent.basicProperties.owner = basicProperties.owner;
             ent.mainBase = this;
-            ent.RequestTask();
             workerList.Add(ent);
+            ent.RequestTask();
         }
     }
 
@@ -49,18 +49,21 @@ public class MainBaseEntity : Entity {
     {
         if (!task.Unassigned())
             task.UnassignAllWorkers();
-        task.OnRemove();
-        taskQueue.Remove(task);
+        if (!task.Paused())
+        {
+            task.OnRemove();
+            taskQueue.Remove(task);
+        }
     }
-    public Task GetNextTask()
+    public Task GetNextTask(WorkerEntity worker)
     {
-        Task temp = taskQueue.GetNextTask();
+        Task temp = taskQueue.GetNextTask(worker);
         if (temp != null)
         {
             if (!Pathfinding.instance.PathExists(transform.position, temp.GetTarget().transform.position))
             {
                 RemoveTask(temp);
-                return GetNextTask();
+                return GetNextTask(worker);
             }
         }
         return temp;

@@ -41,6 +41,16 @@ public class Dummy : MonoBehaviour {
         get { return dummyRenderer.material.color; }
         set { dummyRenderer.material.color = value; }
     }
+
+    public void SetColor(float r, float g, float b)
+    {
+        color = new Color(r, g, b, color.a);
+    }
+    public void SetColor(float r, float g, float b, float a)
+    {
+        color = new Color(r, g, b, a);
+    }
+
     public void ResetColor()
     {
         color = defaultMaterial.color;
