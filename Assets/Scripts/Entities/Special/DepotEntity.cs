@@ -10,9 +10,14 @@ public class DepotEntity : Entity {
     //PROPERTIES
     void Start()
     {
-        resourceContainer.Initialize(gameObject);
+        resourceContainer.Initialize(this);
     }
 
+
+    public void OnResouresChanged()
+    {
+        basicProperties.owner.OnResourcesChanged();
+    }
 
     public bool IsEmpty()
     {

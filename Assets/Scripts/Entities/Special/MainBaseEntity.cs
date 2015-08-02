@@ -40,9 +40,7 @@ public class MainBaseEntity : Entity {
         if (!taskQueue.Contains(task))
         {
             taskQueue.Add(task);
-            foreach (WorkerEntity w in workerList)
-                if (!w.IsWorking())
-                    w.RequestTask();
+            NotifyWorkers();
         }
     }
     public void RemoveTask(Task task)
@@ -67,6 +65,13 @@ public class MainBaseEntity : Entity {
             }
         }
         return temp;
+    }
+
+    public void NotifyWorkers()
+    {
+        foreach (WorkerEntity worker in workerList)
+            if (!worker.IsWorking())
+                worker.RequestTask();
     }
 
     public int GetTaskCount()

@@ -19,10 +19,16 @@ public class BuildTask : Task {
 
     public override bool DoTask(WorkerEntity worker)
     {
-        if (!worker.BuildBuilding(building))
+        return worker.BuildBuilding2(building);
+        /*if (!worker.BuildBuilding(building))
             if (!worker.GatherCargo(building))
                 return !building.isBuilt;
-        return true;
+        return true;*/
+    }
+
+    public override bool Done()
+    {
+        return building.isBuilt;
     }
 
     public override bool PauseCondition(WorkerEntity worker)

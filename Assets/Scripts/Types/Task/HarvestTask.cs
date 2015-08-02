@@ -18,10 +18,21 @@ public class HarvestTask : Task {
 
     public override bool DoTask(WorkerEntity worker)
     {
-        if (!worker.HarvestResource(resource))
+        return worker.HarvestResource2(resource);
+        /*if (!worker.HarvestResource(resource))
             if (!worker.BringCargo())
                 return resource != null;
-        return true;
+        return true;*/
+    }
+    public override bool Done()
+    {
+        return resource == null || resource.Empty();
+    }
+
+    public override bool PauseCondition(WorkerEntity worker)
+    {
+        paused = worker.resourceContainer.IsFull() && worker.basicProperties.owner.GetNearestDepotNotFull(worker.transform.position) == null;
+        return paused;
     }
 
     public override void OnAdd()
@@ -36,6 +47,14 @@ public class HarvestTask : Task {
     public override void OnUpdateAssign()
     {
         if (resource != null)
-            resource.resourceDummy.color = Assigned() ? new Color(0, 0.5f, 0f) : new Color(0.5f, 0, 0f);
+        {
+            if (Paused())
+                resource.resourceDummy.SetColor(0.5f, 0.5f, 0f);
+            else if (Assigned())
+                resource.resourceDummy.SetColor(0, 0.5f, 0f);
+            else
+                resource.resourceDummy.SetColor(0.5f, 0, 0f);
+
+        }
     }
 }

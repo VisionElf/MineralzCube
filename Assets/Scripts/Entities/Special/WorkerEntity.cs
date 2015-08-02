@@ -16,6 +16,9 @@ public class WorkerEntity : Entity {
     public int harvestQuantity;
     public float harvestRange;
 
+    public float depositSpeed;
+    public int depositQuantity;
+
     //PROPERTIES
     public MainBaseEntity mainBase { get; set; }
     DepotEntity currentNearestDepot;
@@ -25,7 +28,7 @@ public class WorkerEntity : Entity {
     //FUNCTIONS
     void Start()
     {
-        resourceContainer.Initialize(gameObject);
+        resourceContainer.Initialize(this);
     }
 
     public bool HarvestResource(ResourceEntity resource)
@@ -96,6 +99,39 @@ public class WorkerEntity : Entity {
         return true;
     }
 
+    public bool HarvestResource2(ResourceEntity resource)
+    {
+        int bestQty = Mathf.Min(harvestQuantity, resource.GetRemainingResources(), resourceContainer.GetEmptyPlace());
+
+        resourceContainer.AddResource(resource.resourceType, bestQty);
+        resource.Harvest(bestQty);
+        return !resourceContainer.IsFull();
+    }
+    public bool BuildBuilding2(BuildingEntity building)
+    {
+        int bestQty = Mathf.Min(buildQuantity, building.GetRemainingResources(), resourceContainer.GetAllResourcesStock());
+
+        resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
+        building.Build(bestQty);
+        return !resourceContainer.IsEmpty();
+    }
+    public bool DepositResource(DepotEntity depot)
+    {
+        int bestQty = Mathf.Min(depositQuantity, resourceContainer.GetAllResourcesStock(), depot.resourceContainer.GetEmptyPlace());
+
+        resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
+        depot.resourceContainer.AddResource(EResourceType.Rock, bestQty);
+        return !resourceContainer.IsEmpty() && !depot.IsFull();
+    }
+    public bool WithdrawResource(DepotEntity depot)
+    {
+        int bestQty = Mathf.Min(depositQuantity, resourceContainer.GetEmptyPlace(), depot.resourceContainer.GetResourceStock(EResourceType.Rock).stock);
+
+        depot.resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
+        resourceContainer.AddResource(EResourceType.Rock, bestQty);
+        return !resourceContainer.IsFull() && !depot.IsEmpty();
+    }
+
 
     public bool IsWorking()
     {
@@ -111,13 +147,17 @@ public class WorkerEntity : Entity {
 
     public void AssignTask(Task task)
     {
-        StopCoroutine("Task");
+        StopAllCoroutines();
         currentNearestDepot = null;
         currentTask = task;
         if (currentTask != null && basicProperties.CanReach(task.GetTarget()))
         {
             currentTask.AssignWorker(this);
-            StartCoroutine("Task");
+            if (currentTask.GetType() == typeof(HarvestTask))
+                StartCoroutine("Harvest");
+            else if (currentTask.GetType() == typeof(BuildTask))
+                StartCoroutine("Build");
+            //StartCoroutine("Task");
         }
         else
             OnTaskDone();
@@ -133,10 +173,98 @@ public class WorkerEntity : Entity {
         RequestTask();
     }
 
+    IEnumerator Harvest()
+    {
+        // HARVEST CONDITION
+        while (!currentTask.Done() && !currentTask.PauseCondition(this))
+        {
+            //REACH
+            while (!basicProperties.Reached(currentTask.GetTarget(), harvestRange))
+                yield return null;
+            //HARVEST RESOURCE
+            while (!currentTask.Done() && currentTask.DoTask(this))
+                yield return new WaitForSeconds(harvestSpeed);
+
+            // EMPTY CONTAINER
+            if (!resourceContainer.IsEmpty())
+            {
+                DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(transform.position);
+                if (depot != null)
+                {
+                    //REACH
+                    while (!basicProperties.Reached(depot))
+                        yield return null;
+                    //DEPOSIT
+                    while (DepositResource(depot))
+                        yield return new WaitForSeconds(depositSpeed);
+                }
+            }
+        }
+
+        OnTaskDone();
+
+        //WHEN OVER RETURN TO BASE
+        while (!basicProperties.Reached(mainBase, -mainBase.basicProperties.radius))
+            yield return null;
+    }
+    IEnumerator Build()
+    {
+        // HARVEST CONDITION
+        while (!currentTask.Done() && !currentTask.PauseCondition(this))
+        {
+            //FILL CONTAINER
+            DepotEntity depot = basicProperties.owner.GetNearestDepotNotEmpty(transform.position);
+            if (depot != null)
+            {
+                //REACH
+                while (!basicProperties.Reached(depot))
+                    yield return null;
+                //DEPOSIT
+                while (WithdrawResource(depot))
+                    yield return new WaitForSeconds(depositSpeed);
+            }
+
+            if (!resourceContainer.IsEmpty())
+            {
+                //REACH
+                while (!basicProperties.Reached(currentTask.GetTarget(), buildRange))
+                    yield return null;
+                //HARVEST RESOURCE
+                while (!currentTask.Done() && currentTask.DoTask(this))
+                    yield return new WaitForSeconds(buildSpeed);
+            }
+        }
+
+        OnTaskDone();
+
+        //IF THERE IS STILL RESOURCES IN CARGO
+        if (!resourceContainer.IsEmpty())
+        {
+            // EMPTY CONTAINER
+            DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(transform.position);
+
+            //REACH
+            while (!basicProperties.Reached(depot))
+                yield return null;
+            //DEPOSIT
+            while (DepositResource(depot))
+                yield return new WaitForSeconds(depositSpeed);
+        }
+
+        //WHEN OVER RETURN TO BASE
+        while (!basicProperties.Reached(mainBase, -mainBase.basicProperties.radius))
+            yield return null;
+    }
+
     IEnumerator Task()
     {
-        while (currentTask != null && !currentTask.PauseCondition(this) && currentTask.DoTask(this))
-            yield return null;
+        while (!currentTask.Done())
+        {
+            while (!basicProperties.Reached(currentTask.GetTarget()))
+                yield return null;
+            while (!currentTask.PauseCondition(this) && currentTask.DoTask(this))
+                yield return new WaitForSeconds(harvestSpeed);
+        }
 
         OnTaskDone();
 

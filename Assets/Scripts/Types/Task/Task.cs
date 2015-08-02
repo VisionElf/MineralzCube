@@ -43,9 +43,11 @@ public class Task {
         return workersList.Count == 0;
     }
 
+    public void Pause() { paused = true; }
     public bool Paused() { return paused; }
     public virtual bool PauseCondition(WorkerEntity worker) { return false; }
 
+    public virtual bool Done() { return false; }
     public virtual void OnUpdateAssign() { }
     public virtual void OnAdd() { }
     public virtual void OnRemove() { }

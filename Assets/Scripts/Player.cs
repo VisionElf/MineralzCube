@@ -102,6 +102,7 @@ public class Player : MonoBehaviour {
             GameObject buildingObj = GameObject.Instantiate(currentBuild.gameObject);
             BuildingEntity building = buildingObj.GetComponent<BuildingEntity>();
             building.transform.position = previewBuild.transform.position;
+            building.basicProperties.owner = this;
             building.StartBuild();
             if (building.HaveDepot())
                 depots.Add(building.depotProperties);
@@ -118,7 +119,7 @@ public class Player : MonoBehaviour {
         RaycastHit hit;
         while (!Input.GetMouseButtonDown(0) && currentBuild != null)
         {
-            if (GameObject.Find("Grid").GetComponent<Collider>().Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hit, 50f))
+            if (GameObject.Find("Grid").GetComponent<Collider>().Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hit, 500f))
                 mousePosition = hit.point;
             previewBuild.transform.position = Map.instance.SnapToGrid(mousePosition, currentBuild);
             if (Input.GetMouseButtonDown(1))
@@ -129,6 +130,11 @@ public class Player : MonoBehaviour {
         StartBuild();
         GameObject.Destroy(previewBuild);
         previewBuild = null;
+    }
+
+    public void OnResourcesChanged()
+    {
+        mainBase.NotifyWorkers();
     }
 
     void UpdateMouseButtons()

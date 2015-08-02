@@ -15,7 +15,7 @@ public class ResourceContainer {
     public int dummyListEnd;
 
     //PROPERTIES
-    GameObject parent;
+    Entity parent;
     List<Dummy> dummyList;
     float dummyTotalSize;
 
@@ -25,7 +25,7 @@ public class ResourceContainer {
         dummyList = new List<Dummy>();
     }
 
-    public void Initialize(GameObject _parent)
+    public void Initialize(Entity _parent)
     {
         parent = _parent;
         CreateDummyList();
@@ -47,6 +47,8 @@ public class ResourceContainer {
                 quantity = total - current;
             resourceStock.stock += quantity;
             RefreshDummyList();
+            if (parent != null && parent.HaveDepot())
+                parent.depotProperties.OnResouresChanged();
             return quantity;
         }
         else
@@ -71,6 +73,8 @@ public class ResourceContainer {
                 quantity = current;
             resourceStock.stock -= quantity;
             RefreshDummyList();
+            if (parent.HaveDepot())
+                parent.depotProperties.OnResouresChanged();
             return quantity;
         }
         else
@@ -130,7 +134,7 @@ public class ResourceContainer {
         dummyList = new List<Dummy>();
         for (int i = dummyListStart; i <= dummyListEnd; i++)
         {
-            GameObject obj = Static.FindChild(parent, "R" + i);
+            GameObject obj = Static.FindChild(parent.gameObject, "R" + i);
             if (obj != null)
             {
                 Dummy dummy;
