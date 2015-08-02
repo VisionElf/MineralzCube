@@ -15,7 +15,7 @@ public class Player : MonoBehaviour {
     KeyCode[] buildShortcuts = new KeyCode[] { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7 };
 
     //PROPERTIES
-    MainBaseEntity mainBase;
+    public MainBaseEntity mainBase { get; set; }
     List<DepotEntity> depots = new List<DepotEntity>();
 
     BuildingEntity currentBuild;
@@ -45,7 +45,7 @@ public class Player : MonoBehaviour {
         float minDistance = 0f;
         foreach (DepotEntity depot in depots)
         {
-            if (depot.buildingProperties.isBuilt && !depot.IsEmpty() && Pathfinding.instance.PathExists(depot.transform.position, position))
+            if (depot.buildingProperties.isBuilt && !depot.IsEmpty() && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
             {
                 float distance = Vector3.Distance(depot.transform.position, position);
                 if (distance < minDistance || nearestDepot == null)
@@ -63,7 +63,7 @@ public class Player : MonoBehaviour {
         float minDistance = 0f;
         foreach (DepotEntity depot in depots)
         {
-            if (depot.buildingProperties.isBuilt && !depot.IsFull() && Pathfinding.instance.PathExists(depot.transform.position, position))
+            if (depot.buildingProperties.isBuilt && !depot.IsFull() && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
             {
                 float distance = Vector3.Distance(depot.transform.position, position);
                 if (distance < minDistance || nearestDepot == null)

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class MovableEntity : Entity {
     
     //UNTIY PROPERTIES
+    public bool ignoreCollisions;
     public float speed;
 
     //PROPERTIES
@@ -19,31 +20,44 @@ public class MovableEntity : Entity {
     public void FindWaypoints(Vector3 target)
     {
         targetDestination = target;
-        waypoints = Pathfinding.instance.FindPath(transform.position, target);
+        waypoints = Pathfinding.instance.FindPath(transform.position, target, basicProperties.radius);
     }
 
     public void MoveTowards(Vector3 destination)
     {
-        if (destination == transform.position)
-            return;
-        if (targetDestination != destination)
-            FindWaypoints(destination);
-
-        if (waypoints.Count > 0)
+        if (ignoreCollisions)
         {
-            Vector3 currentWaypoint = waypoints[0];
-            float distance = Vector3.Distance(transform.position, currentWaypoint);
-            if (distance <= 0)
-            {
-                waypoints.Remove(currentWaypoint);
-                MoveTowards(destination);
-                return;
-            }
-            basicProperties.LookAt(currentWaypoint);
-            transform.position = Vector3.MoveTowards(transform.position, currentWaypoint, speed * Time.deltaTime);
+            DirectMoveTowards(destination);
+            return;
         }
         else
-            targetDestination = Vector3.zero;
+        {
+            if (destination == transform.position)
+                return;
+            if (targetDestination != destination)
+                FindWaypoints(destination);
+
+            if (waypoints.Count > 0)
+            {
+                Vector3 currentWaypoint = waypoints[0];
+                float distance = Vector3.Distance(transform.position, currentWaypoint);
+                if (distance <= 0)
+                {
+                    waypoints.Remove(currentWaypoint);
+                    MoveTowards(destination);
+                    return;
+                }
+                DirectMoveTowards(currentWaypoint);
+            }
+            else
+                targetDestination = Vector3.zero;
+        }
+    }
+
+    public void DirectMoveTowards(Vector3 position)
+    {
+        basicProperties.LookAt(position);
+        transform.position = Vector3.MoveTowards(transform.position, position, speed * Time.deltaTime);
     }
 
     void OnDrawGizmos()

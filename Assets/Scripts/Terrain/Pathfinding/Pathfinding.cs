@@ -11,6 +11,7 @@ public class Pathfinding : MonoBehaviour
     public Transform end;
 
     public bool displayPathfinding;
+    public bool displayCacheDebug;
     public bool displaySmoothing;
 
     static public Pathfinding instance;
@@ -59,23 +60,24 @@ public class Pathfinding : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.P))
-            FindPath(start.position, end.position);
+            FindPath(start.position, end.position, 0f);
 
         /*if (Input.GetKeyDown(KeyCode.O))
             advance = true;*/
     }
 
-    public bool PathExists(Vector3 start, Vector3 end)
-    {
-        return FindPath(start, end).Count > 0;
-    }
-    public List<Vector3> FindPath(Vector3 start, Vector3 end)
+    public bool PathExists(Vector3 start, Vector3 end, float radius)
     {
         Collider temp;
-        return FindPath(start, end, false, out temp);
+        return FindPath(start, end, radius, true, false, out temp).Count > 0;
+    }
+    public List<Vector3> FindPath(Vector3 start, Vector3 end, float radius)
+    {
+        Collider temp;
+        return FindPath(start, end, radius, false, false, out temp);
         //return new List<Vector3>();
     }
-    public List<Vector3> FindPath(Vector3 start, Vector3 end, bool ignoreStructure, out Collider structureHit)
+    public List<Vector3> FindPath(Vector3 start, Vector3 end, float radius, bool checkExists, bool ignoreStructure, out Collider structureHit)
     {
         structureHit = null;
         Node startNode = grid.GetNodeAt(start);
@@ -90,8 +92,9 @@ public class Pathfinding : MonoBehaviour
             List<Vector3> cacheResult = cachePathfinding[key];
             if (displayPathfinding)
                 foreach (Vector3 r in cacheResult)
-                    grid.GetNodeAt(r).color = Color.magenta;
-            print("[FOUND] Path of " + cacheResult.Count + " waypoint(s) in cache: " + key);
+                    grid.GetNodeAt(r).SetColor(Color.magenta);
+            if (displayCacheDebug)
+                print("[FOUND] Path of " + cacheResult.Count + " waypoint(s) in cache: " + key);
             cacheCallCount++;
             return new List<Vector3>(cacheResult);
         }
@@ -121,7 +124,7 @@ public class Pathfinding : MonoBehaviour
             Node currentNode = openList.RemoveFirst();
             closedList.Add(currentNode);
             if (displayPathfinding)
-                currentNode.color = Color.blue;
+                currentNode.SetColor(Color.blue);
 
             if (currentNode == endNode)
             {
@@ -160,14 +163,7 @@ public class Pathfinding : MonoBehaviour
                     n.parent = currentNode;
 
                     if (displayPathfinding)
-                        n.color = Color.magenta;
-                    /*showNodes.Add(n);
-                    advance = false;
-                    while (displayPathfinding && !advance)
-                        yield return null;*/
-
-                    if (displayPathfinding)
-                        n.color = Color.yellow;
+                        n.SetColor(Color.yellow);
 
                     if (!openList.Contains(n))
                         openList.Add(n);
@@ -177,42 +173,47 @@ public class Pathfinding : MonoBehaviour
             }
             showNodes.Remove(currentNode);
             if (displayPathfinding)
-                currentNode.color = Color.red;
+                currentNode.SetColor(Color.red);
         }
 
         List<Vector3> result = new List<Vector3>();
-        if (path.Count > 0)
+        if (path.Count > 0 && !checkExists)
         {
             if (displayPathfinding)
                 foreach (Node n in path)
-                    n.color = new Color(0f, 0.4f, 0f);
+                    n.SetColor(new Color(0f, 0.4f, 0f));
 
             if (useBestSmooth)
                 path = BestSmooth(path, startObstacle, endObstacle);
 
             if (displayPathfinding)
                 foreach (Node n in path)
-                    n.color = Color.green;
+                    n.SetColor(Color.green);
+        }
 
+        if (path.Count > 0)
+        {
             result = NodeListToWaypoints(path);
-            
+
             if (useEndPrecisePosition)
             {
                 if (result.Count > 0)
                     result.RemoveAt(result.Count - 1);
                 result.Add(end);
             }
+            
+            /*
+            if (radius > 0)
+                result = CorrectPathForRadius(result, radius);*/
         }
+        if (!Grid.colorLocked)
+            showVector = result;
 
-        /*showVector.Clear();
-        showVector.Add(start);
-        foreach (Vector3 r in result)
-            showVector.Add(r);*/
-
-        if (result.Count > 0 && useCache)
+        if (result.Count > 0 && useCache && !checkExists)
         {
             cachePathfinding.Add(key, result);
-            print("[ADDED] Path of " + result.Count + " waypoint(s) in cache: " + key);
+            if (displayCacheDebug)
+                print("[ADDED] Path of " + result.Count + " waypoint(s) in cache: " + key);
         }
         sw.Stop();
 
@@ -276,6 +277,7 @@ public class Pathfinding : MonoBehaviour
         Node endNode = path[path.Count - 1];
 
         Node bestNode = lastNode;
+        RaycastHit[] lastHits = new RaycastHit[0];
         while (lastNode != endNode)
         {
             bestNode = null;
@@ -288,16 +290,52 @@ public class Pathfinding : MonoBehaviour
                     bestNode = n;
                     lastIndex = i;
                 }
+                else
+                    lastHits = hits;
             }
             if (bestNode == null)
             {
-                print("No path found");
+                if (!Grid.colorLocked)
+                {
+                    print("No path found, list=" + list.Count + ",path=" + path.Count);
+                    print("lastIndex=" + lastIndex + " lastNode=" + lastNode);
+                    showPoints.Clear();
+                    for (int i = 0; i < lastHits.Length; i++)
+                    {
+                        print(lastHits[i].collider.name + " - " + lastHits[i].point);
+                        showPoints.Add(lastHits[i].point);
+                    }
+                    if (displayPathfinding)
+                        foreach (Node n in list)
+                            n.SetColor(Color.cyan);
+                    path[0].SetColor(Color.blue);
+                    lastNode.SetColor(Color.magenta);
+                    endNode.SetColor(new Color(0f, 0f, 0.5f));
+
+                    Grid.colorLocked = true;
+                }
+
+
                 return list;
             }
             list.Add(bestNode);
             lastNode = bestNode;
         }
         return list;
+    }
+
+    public List<Vector3> CorrectPathForRadius(List<Vector3> path, float radius)
+    {
+        List<Vector3> correctPath = new List<Vector3>();
+        foreach (Vector3 pos in path)
+        {
+            Vector3 newPos = pos;
+            RaycastHit hit;
+            if (Physics.SphereCast(newPos, radius, Vector3.right, out hit, radius, grid.mask))
+                newPos -= (hit.point - newPos).normalized * radius;
+            correctPath.Add(newPos);
+        }
+        return correctPath;
     }
 
     public bool HitContainsOnlyCollider(RaycastHit[] hits, Collider collider)
@@ -309,6 +347,8 @@ public class Pathfinding : MonoBehaviour
     }
 
     List<Vector3> showVector = new List<Vector3>();
+    List<Vector3> showPoints = new List<Vector3>();
+    List<Node> showNodes = new List<Node>();
     void OnDrawGizmos()
     {
         if (displayPathfinding)
@@ -317,37 +357,15 @@ public class Pathfinding : MonoBehaviour
             {
                 Gizmos.color = Color.green;
                 for (int i = 1; i < showVector.Count; i++)
-                {
                     Gizmos.DrawLine(showVector[i - 1] + Vector3.up * 0.5f, showVector[i] + Vector3.up * 0.5f);
-                }
             }
-        }
-    }
 
-
-    List<Node> showNodes = new List<Node>();
-    void OnGUI()
-    {
-        if (displayPathfinding)
-        {
-            /*foreach (Node n in showNodes)
+            if (showPoints.Count > 0)
             {
-                UnityEditor.Handles.color = Color.red;
-                UnityEditor.Handles.CubeCap(0, n.position, Quaternion.Euler(new Vector3(0, 90, 0)), 1f);
-
-                GUIStyle style = new GUIStyle();
-                style.fontSize = 8;
-                UnityEditor.Handles.color = Color.white;
-
-                string label = n.gCost + "";
-                UnityEditor.Handles.Label(n.position + new Vector3(-0.5f, 0, .5f), label, style);
-
-                label = n.hCost + "";
-                UnityEditor.Handles.Label(n.position + new Vector3(-0.5f, 0, .25f), label, style);
-
-                label = n.fCost + "";
-                UnityEditor.Handles.Label(n.position + new Vector3(-0.5f, 0, 0), label, style);
-            }*/
+                Gizmos.color = Color.red;
+                for (int i = 0; i < showPoints.Count; i++)
+                    Gizmos.DrawSphere(showPoints[i], 0.1f);
+            }
         }
     }
 }

@@ -3,13 +3,12 @@ using System.Collections;
 
 public class Node : IHeapItem<Node>
 {
-
     public int x;
     public int y;
 
     Vector3 _position;
     public Vector3 position { get { return _position; } }
-    public Color color;
+    Color color;
     public bool walkable;
 
     public float gCost;
@@ -27,7 +26,6 @@ public class Node : IHeapItem<Node>
         _position = pos;
 
         SetWalkable(true, null);
-        ResetColor();
     }
 
     public void SetWalkable(bool _walkable, Collider collider)
@@ -37,10 +35,20 @@ public class Node : IHeapItem<Node>
             obstacle = collider;
         else
             obstacle = null;
-        color = walkable ? Color.white : Color.black;
+        ResetColor();
     }
 
-    public void ResetColor() { color = (walkable) ? Color.white : Color.black; }
+    public void SetColor(Color _color)
+    {
+        if (!Grid.colorLocked)
+            color = _color;
+    }
+    public Color GetColor() { return color; }
+    public void ResetColor()
+    {
+        if (!Grid.colorLocked)
+            color = (walkable) ? Color.white : Color.black;
+    }
     public bool IsInDiagonal(Node node)
     {
         return (node.x == x + 1 && node.y == y + 1

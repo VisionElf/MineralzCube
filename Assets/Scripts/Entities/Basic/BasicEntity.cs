@@ -9,7 +9,8 @@ public class BasicEntity : Entity {
 
     //PROPERTIES
     public Player owner { get; set; }
-    Queue<Action> actions;
+
+    /*Queue<Action> actions;
     Action currentAction;
 
     //ACTION FUNCTION
@@ -39,26 +40,34 @@ public class BasicEntity : Entity {
             while (currentAction.DoAction(this))
                 yield return null;
         }
-    }
+    }*/
 
     //FUNCTION
     public bool Reached(Entity entity)
     {
         return Reached(entity, 0f);
     }
-    public bool Reached(Entity entity, float range)
+    public bool Reached(Entity entity, float additionnalRange)
     {
         if (entity == null)
         {
             print("reached: entity is null, parent is " + name);
             return false;
         }
-        float distance = Vector3.Distance(entity.transform.position, transform.position);
-        float distanceRange = range + entity.basicProperties.radius + radius;
+        return Reached(entity.transform.position, entity.basicProperties.radius + additionnalRange);
+    }
+    public bool Reached(Vector3 destination)
+    {
+        return Reached(destination, 0f);
+    }
+    public bool Reached(Vector3 destination, float range)
+    {
+        float distance = Vector3.Distance(destination, transform.position);
+        float distanceRange = range + radius;
         if (distance > distanceRange)
         {
             if (IsMovable())
-                movableProperties.MoveTowards(entity.transform.position);
+                movableProperties.MoveTowards(destination);
             return false;
         }
         return distance <= distanceRange;
@@ -75,7 +84,7 @@ public class BasicEntity : Entity {
         if (Vector3.Distance(entity.transform.position, transform.position) <= range + entity.basicProperties.radius + radius)
             return true;
         else if (IsMovable())
-            return Pathfinding.instance.PathExists(transform.position, entity.transform.position);
+            return Pathfinding.instance.PathExists(transform.position, entity.transform.position, radius);
         return false;
     }
 

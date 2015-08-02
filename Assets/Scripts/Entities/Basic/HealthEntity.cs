@@ -48,6 +48,10 @@ public class HealthEntity : Entity {
     {
         return health <= 0;
     }
+    public bool IsAlive()
+    {
+        return health > 0;
+    }
     public virtual void OnDeath()
     {
         RemoveObject();

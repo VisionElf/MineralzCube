@@ -4,19 +4,41 @@ using System.Collections;
 public class Entity : MonoBehaviour {
 
     //FUNCTIONS
+    public void DisableCollider()
+    {
+        Collider collider = GetComponentInChildren<Collider>();
+        if (collider != null)
+            GetComponentInChildren<Collider>().enabled = false;
+    }
     public void RemoveObject()
     {
-        GetComponentInChildren<Collider>().enabled = false;
-        Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
-        Pathfinding.instance.RefreshCache();
+        RemovePathMap();
         GameObject.Destroy(gameObject);
     }
 
+    bool pathMapApplied;
+    public bool PathMapApplied() { return pathMapApplied; }
     public void ApplyPathMap()
     {
-        GetComponentInChildren<Collider>().enabled = true;
-        Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
-        Pathfinding.instance.RefreshCache();
+        pathMapApplied = true;
+        Collider collider = GetComponentInChildren<Collider>();
+        if (collider != null)
+        {
+            GetComponentInChildren<Collider>().enabled = true;
+            Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+            Pathfinding.instance.RefreshCache();
+        }
+    }
+    public void RemovePathMap()
+    {
+        pathMapApplied = false;
+        Collider collider = GetComponentInChildren<Collider>();
+        if (collider != null)
+        {
+            GetComponentInChildren<Collider>().enabled = false;
+            Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+            Pathfinding.instance.RefreshCache();
+        }
     }
 
     //PROPERTIES
@@ -48,6 +70,16 @@ public class Entity : MonoBehaviour {
     public HealthEntity healthProperties
     {
         get { return GetComponent<HealthEntity>(); }
+    }
+
+    //ATTACK
+    public bool CanAttack()
+    {
+        return GetComponent<AttackEntity>() != null;
+    }
+    public AttackEntity attackProperties
+    {
+        get { return GetComponent<AttackEntity>(); }
     }
 
     //DEPOT

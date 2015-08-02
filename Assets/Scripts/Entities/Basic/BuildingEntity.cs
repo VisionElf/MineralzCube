@@ -19,13 +19,10 @@ public class BuildingEntity : Entity {
     float defaultY;
 
     //FUNCTIONS
-    void Start()
-    {
-        ApplyPathMap();
-    }
 
     public void StartBuild()
     {
+        DisableCollider();
         model.transform.localPosition = new Vector3(0, -sizeY, 0);
         isBuilt = false;
         buildResources = 0;
@@ -38,6 +35,9 @@ public class BuildingEntity : Entity {
         if (resources > GetRemainingResources())
             resources = GetRemainingResources();
         buildResources += resources;
+
+        if (!PathMapApplied() && buildResources > 0)
+            ApplyPathMap();
 
         if (HaveHealth())
             healthProperties.AddPercentHealth((float)resources / cost);
@@ -55,6 +55,9 @@ public class BuildingEntity : Entity {
 
     public void OnBuildFinish()
     {
+        if (!PathMapApplied())
+            ApplyPathMap();
+
         if (buildingDummy != null)
             buildingDummy.Hide();
         isBuilt = true;

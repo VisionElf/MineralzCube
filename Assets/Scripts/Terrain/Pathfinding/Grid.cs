@@ -56,6 +56,7 @@ public class Grid : MonoBehaviour
         get { return new Vector3(gridWorldSizeX, 0, gridWorldSizeY); }
     }
 
+    static public bool colorLocked;
     static public Grid instance;
 
     void Start()
@@ -222,7 +223,7 @@ public class Grid : MonoBehaviour
             {
                 foreach (Node n in nodes)
                 {
-                    Gizmos.color = n.color;
+                    Gizmos.color = n.GetColor();
                     Gizmos.DrawCube(n.position + new Vector3(0f, gizmoSize.y / 2, 0f), gizmoSize);
                 }
             }
@@ -238,6 +239,5 @@ public class Grid : MonoBehaviour
                 }
             }
         }   
-
     }
 }

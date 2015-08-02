@@ -13,87 +13,71 @@ public class AttackEntity : Entity {
     public float scanSpeed;
 
     public Entity projectileType;
+    public Transform projectileOrigin;
 
     //PROPERTIES
+    HealthEntity mainTargetEntity;
     HealthEntity targetEntity;
 
-    public bool Attack(Entity entity)
+    public void AttackTo(Entity entity)
     {
-        if (entity.HaveHealth())
-            targetEntity = entity.healthProperties;
-        if (targetEntity != null)
-        {
-            if (Vector3.Distance(entity.transform.position, transform.position) <= attackRange)
-                StartAttackTarget();
-            else
-                targetEntity = null;
-
-        }
-        return targetEntity != null;
-    }
-
-    void StartAttackTarget()
-    {
-        StopCoroutine("AttackTarget");
-        StartCoroutine("AttackTarget");
-    }
-    void StartScanTarget()
-    {
-        StopCoroutine("ScanTarget");
-        StartCoroutine("ScanTarget");
-    }
-
-    void StopAttack()
-    {
-        StopAllCoroutines();
+        StopCoroutine("Attack");
         targetEntity = null;
-        StartScanTarget();
-    }
+        mainTargetEntity = entity.healthProperties;
+        Collider structureHit;
+        if (!Pathfinding.instance.PathExists(transform.position, entity.transform.position, basicProperties.radius))
+        {
+            Pathfinding.instance.FindPath(transform.position, entity.transform.position, basicProperties.radius, false, true, out structureHit);
 
-    /*IEnumerator ScanTarget()
-    {
-        HealthEntity potentialTarget = null;
-        while (potentialTarget == null)
-        {
-            float minDistance = 0;
-            foreach (HealthEntity entity in (HealthEntity[])GameObject.FindObjectsOfType(typeof(HealthEntity)))
-            {
-                float distance = Vector3.Distance(entity.transform.position, transform.position);
-                if (distance <= scanRange)
-                {
-                    if (potentialTarget == null || distance < minDistance)
-                    {
-                        potentialTarget = entity;
-                        minDistance = distance;
-                    }
-                }
-            }
-            yield return new WaitForSeconds(scanSpeed);
-        }
-        Attack(potentialTarget);
-    }
-    IEnumerator AttackTarget()
-    {
-        while (targetEntity != null && (!targetEntity.HaveHealth() || !targetEntity.healthProperties.IsDead()))
-        {
-            if (Vector3.Distance(targetEntity.transform.position, transform.position) <= attackRange)
-            {
-                movableProperties.StopMove();
-                LaunchProjectile(targetEntity);
-            }
-            else if (IsMovable())
-                movableProperties.MoveToRangeEntity(targetEntity, attackRange);
+            if (structureHit != null)
+                targetEntity = structureHit.GetComponent<HealthEntity>();
             else
-                break;
-            yield return new WaitForSeconds(attackSpeed);
+                print("[ERROR] No structure found and no path without structure found");
+
+        }
+        else
+            targetEntity = mainTargetEntity;
+
+        if (targetEntity != null)
+            StartCoroutine("Attack");
+    }
+
+    public bool AttackTarget(HealthEntity target)
+    {
+        if (target != null && basicProperties.CanReach(target, attackRange))
+        {
+            if (projectileType != null)
+                LaunchProjectile(target);
+            else
+                target.Damage(attackDamage);
+            return true;
+        }
+        return false;
+    }
+
+    public void LaunchProjectile(HealthEntity target)
+    {
+        GameObject obj = GameObject.Instantiate(projectileType.gameObject);
+        ProjectileEntity projectile = obj.GetComponent<ProjectileEntity>();
+        if (projectileOrigin != null)
+            projectile.transform.position = projectileOrigin.position;
+        else
+            projectile.transform.position = transform.position;
+        projectile.SetTarget(this, target);
+    }
+
+    IEnumerator Attack()
+    {
+        while (targetEntity != null && targetEntity.IsAlive())
+        {
+            //REACH
+            while (!basicProperties.Reached(targetEntity, attackRange))
+                yield return null;
+            while (targetEntity.IsAlive() && AttackTarget(targetEntity))
+                yield return new WaitForSeconds(attackSpeed);
         }
 
-        StopAttack();
-    }*/
-
-    void LaunchProjectile(HealthEntity target)
-    {
-        //GameObject projectile = GameObject.Instantiate(projectileType.gameObject);
-        //TODO: LAUNCH PROJECTILE
-    }    
+        if (mainTargetEntity != null && mainTargetEntity.IsAlive())
+            AttackTo(mainTargetEntity);
+    }
 }

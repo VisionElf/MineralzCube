@@ -88,6 +88,8 @@ public class Map : MonoBehaviour {
     System.Random randomGenerator;
 
     List<Case> emptyCases;
+    List<CreepSpawnEntity> creepSpawns;
+
 
     //STATIC
     static public Map instance;
@@ -166,22 +168,7 @@ public class Map : MonoBehaviour {
         GameObject.Find("Player").GetComponent<Player>().CreateStartingUnits(startingCase.position);
         startingPoints.Remove(startingCase);
 
-        Case creepCase = null;
-        while (startingPoints.Count > 0 && creepCase == null)
-        {
-            Case temp = startingPoints[randomGenerator.Next(0, startingPoints.Count)];
-            startingPoints.Remove(temp);
-            if (Pathfinding.instance.PathExists(temp.position, startingCase.position))
-            {
-                creepCase = temp;
-                break;
-            }
-        }
-        if (creepCase == null)
-            print("No creep spawn point found");
-        else
-            CreateEntityOnMap(creepSpawnEntity, creepCase.position);
-
+        CreateCreepSpawns(startingCase, startingPoints);
 
         GameObject.Find("Player").GetComponent<Player>().OnGameStarted();
     }
@@ -268,13 +255,46 @@ public class Map : MonoBehaviour {
         }
     }
 
-    public void CreateEntityOnMap(Entity type, Vector3 position)
+    public GameObject CreateEntityOnMap(Entity type, Vector3 position)
     {
         GameObject obj = GameObject.Instantiate(type.gameObject);
         obj.transform.position = SnapToGrid(position, obj.GetComponent<Entity>().buildingProperties);
         obj.GetComponentInChildren<Renderer>().gameObject.transform.position -= new Vector3(0, randomGenerator.Next(0, 100) * 0.25f / 100f, 0f);
         obj.transform.Rotate(Vector3.up * randomGenerator.Next(0, 4) * 90);
         obj.tag = "Terrain";
+        return obj;
+    }
+
+    public void CreateCreepSpawns(Case startingCase, List<Case> startingPoints)
+    {
+        creepSpawns = new List<CreepSpawnEntity>();
+        Case creepCase = null;
+        while (startingPoints.Count > 0 && creepCase == null)
+        {
+            Case temp = startingPoints[randomGenerator.Next(0, startingPoints.Count)];
+            startingPoints.Remove(temp);
+            if (Pathfinding.instance.PathExists(temp.position, startingCase.position, 0f))
+            {
+                creepCase = temp;
+                break;
+            }
+        }
+        if (creepCase == null)
+            print("No creep spawn point found");
+        else
+        {
+            creepSpawns.Add(CreateEntityOnMap(creepSpawnEntity, creepCase.position).GetComponent<CreepSpawnEntity>());
+        }
+    }
+    public void StartSpawnCreeps()
+    {
+        foreach (CreepSpawnEntity creepSpawn in creepSpawns)
+            creepSpawn.StartSpawn();
+    }
+    public void DestroyCreeps()
+    {
+        foreach (GameObject ent in GameObject.FindGameObjectsWithTag("Creep"))
+            ent.GetComponent<Entity>().RemoveObject();
     }
 
     public List<Case> FindStartingPoints()
