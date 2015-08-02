@@ -62,6 +62,8 @@ public class Map : MonoBehaviour {
 
     public int isolatedCasesRadius;
 
+    public Entity creepSpawnEntity;
+
     public bool drawGizmos;
     public bool printDebug;
 
@@ -160,7 +162,27 @@ public class Map : MonoBehaviour {
 
         Other.StopStep("Generating map", loadings[8]);
 
-        GameObject.Find("Player").GetComponent<Player>().CreateStartingUnits(startingPoints[randomGenerator.Next(0, startingPoints.Count)]);
+        Case startingCase = startingPoints[randomGenerator.Next(0, startingPoints.Count)];
+        GameObject.Find("Player").GetComponent<Player>().CreateStartingUnits(startingCase.position);
+        startingPoints.Remove(startingCase);
+
+        Case creepCase = null;
+        while (startingPoints.Count > 0 && creepCase == null)
+        {
+            Case temp = startingPoints[randomGenerator.Next(0, startingPoints.Count)];
+            startingPoints.Remove(temp);
+            if (Pathfinding.instance.PathExists(temp.position, startingCase.position))
+            {
+                creepCase = temp;
+                break;
+            }
+        }
+        if (creepCase == null)
+            print("No creep spawn point found");
+        else
+            CreateEntityOnMap(creepSpawnEntity, creepCase.position);
+
+
         GameObject.Find("Player").GetComponent<Player>().OnGameStarted();
     }
 

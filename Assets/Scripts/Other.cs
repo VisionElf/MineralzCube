@@ -7,6 +7,7 @@ public class Other {
     static public int loading;
     static public int maxLoading;
     static public bool gameStarted;
+    static public bool showDebug;
 
     static System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
     static float deltaTime;

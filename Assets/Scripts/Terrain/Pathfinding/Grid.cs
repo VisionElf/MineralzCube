@@ -215,25 +215,29 @@ public class Grid : MonoBehaviour
             }
         }
 
-        if (nodes != null && drawGameGizmos)
+        if (drawGameGizmos)
         {
-            foreach (Node n in nodes)
+            Vector3 gizmoSize = new Vector3(1f, 0.1f, 1f) * (nodeSize - 0.2f);
+            if (nodes != null)
             {
-                Gizmos.color = n.color;
-                float size = nodeSize - 0.1f;
-                Gizmos.DrawCube(n.position + new Vector3(0f, size / 2, 0f), Vector3.one * size);
+                foreach (Node n in nodes)
+                {
+                    Gizmos.color = n.color;
+                    Gizmos.DrawCube(n.position + new Vector3(0f, gizmoSize.y / 2, 0f), gizmoSize);
+                }
             }
-        }
 
-        if (path.Count > 0)
-        {
-            Gizmos.DrawCube(path[0].position, Vector3.one * nodeSize);
-            for (int i = 1; i < path.Count; i++)
+            if (path.Count > 0)
             {
-                Gizmos.color = new Color(0, 0.5f, 0);
-                Gizmos.DrawCube(path[i].position, Vector3.one * nodeSize);
-                Gizmos.DrawLine(path[i - 1].position + Vector3.up, path[i].position + Vector3.up);
+                Gizmos.DrawCube(path[0].position, Vector3.one * nodeSize);
+                for (int i = 1; i < path.Count; i++)
+                {
+                    Gizmos.color = new Color(0, 0.5f, 0);
+                    Gizmos.DrawCube(path[i].position, Vector3.one * nodeSize);
+                    Gizmos.DrawLine(path[i - 1].position + Vector3.up, path[i].position + Vector3.up);
+                }
             }
-        }
+        }   
+
     }
 }

@@ -17,6 +17,23 @@ public class Pathfinding : MonoBehaviour
     public int callCount;
     public int cacheCallCount;
 
+    public bool useCache;
+    public bool useEndPrecisePosition;
+    public bool useBestSmooth;
+
+    List<float> averageTimes;
+    public float GetAverageTime()
+    {
+        if (averageTimes.Count > 0)
+        {
+            float count = 0f;
+            foreach (float f in averageTimes)
+                count += f;
+            return count / averageTimes.Count;
+        }
+        return 0f;
+    }
+
     public int cacheCount
     {
         get { return cachePathfinding.Count; }
@@ -28,6 +45,7 @@ public class Pathfinding : MonoBehaviour
         instance = this;
 
         cachePathfinding = new Dictionary<string, List<Vector3>>();
+        averageTimes = new List<float>();
     }
 
     //bool advance;
@@ -63,15 +81,22 @@ public class Pathfinding : MonoBehaviour
         Node startNode = grid.GetNodeAt(start);
         Node endNode = grid.GetNodeAt(end);
 
+        if (displayPathfinding)
+            grid.ResetColors();
+
         string key = startNode.x + "," + startNode.y + ";" + endNode.x + "," + endNode.y;
-        if (cachePathfinding.ContainsKey(key))
+        if (useCache && cachePathfinding.ContainsKey(key))
         {
+            List<Vector3> cacheResult = cachePathfinding[key];
+            if (displayPathfinding)
+                foreach (Vector3 r in cacheResult)
+                    grid.GetNodeAt(r).color = Color.magenta;
+            print("[FOUND] Path of " + cacheResult.Count + " waypoint(s) in cache: " + key);
             cacheCallCount++;
-            return cachePathfinding[key];
+            return new List<Vector3>(cacheResult);
         }
 
         callCount++;
-        grid.ResetColors();
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
@@ -95,7 +120,8 @@ public class Pathfinding : MonoBehaviour
         {
             Node currentNode = openList.RemoveFirst();
             closedList.Add(currentNode);
-            currentNode.color = Color.blue;
+            if (displayPathfinding)
+                currentNode.color = Color.blue;
 
             if (currentNode == endNode)
             {
@@ -133,13 +159,15 @@ public class Pathfinding : MonoBehaviour
                     n.hCost = grid.GetDistance(n, endNode);
                     n.parent = currentNode;
 
-                    n.color = Color.magenta;
+                    if (displayPathfinding)
+                        n.color = Color.magenta;
                     /*showNodes.Add(n);
                     advance = false;
                     while (displayPathfinding && !advance)
                         yield return null;*/
 
-                    n.color = Color.yellow;
+                    if (displayPathfinding)
+                        n.color = Color.yellow;
 
                     if (!openList.Contains(n))
                         openList.Add(n);
@@ -148,28 +176,51 @@ public class Pathfinding : MonoBehaviour
                 }
             }
             showNodes.Remove(currentNode);
-            currentNode.color = Color.red;
+            if (displayPathfinding)
+                currentNode.color = Color.red;
         }
 
         List<Vector3> result = new List<Vector3>();
         if (path.Count > 0)
         {
-            path = BestSmooth(path, startObstacle, endObstacle);
-            foreach (Node n in path)
-                n.color = Color.green;
+            if (displayPathfinding)
+                foreach (Node n in path)
+                    n.color = new Color(0f, 0.4f, 0f);
+
+            if (useBestSmooth)
+                path = BestSmooth(path, startObstacle, endObstacle);
+
+            if (displayPathfinding)
+                foreach (Node n in path)
+                    n.color = Color.green;
+
             result = NodeListToWaypoints(path);
-            if (result.Count > 0)
-                result.RemoveAt(result.Count - 1);
-            result.Add(end);
+            
+            if (useEndPrecisePosition)
+            {
+                if (result.Count > 0)
+                    result.RemoveAt(result.Count - 1);
+                result.Add(end);
+            }
         }
 
-        showVector.Clear();
+        /*showVector.Clear();
         showVector.Add(start);
         foreach (Vector3 r in result)
-            showVector.Add(r);
+            showVector.Add(r);*/
 
-        cachePathfinding.Add(key, result);
-        return result;
+        if (result.Count > 0 && useCache)
+        {
+            cachePathfinding.Add(key, result);
+            print("[ADDED] Path of " + result.Count + " waypoint(s) in cache: " + key);
+        }
+        sw.Stop();
+
+        float time = sw.ElapsedMilliseconds;
+        if (time > 0)
+            averageTimes.Add(time);
+
+        return new List<Vector3>(result);
     }
 
     public List<Node> RetracePath(Node end, Node start)
@@ -232,14 +283,17 @@ public class Pathfinding : MonoBehaviour
             {
                 Node n = path[i];
                 RaycastHit[] hits = Physics.RaycastAll(lastNode.position + Vector3.up, (n.position - lastNode.position).normalized, Vector3.Distance(n.position, lastNode.position), grid.mask);
-                if (hits.Length == 0 || HitContainsOnlyCollider(hits, startCol) || HitContainsOnlyCollider(hits, endCol))
+                if (hits.Length == 0 || (grid.cornerCutting && n.IsInDiagonal(lastNode)) || HitContainsOnlyCollider(hits, startCol) || HitContainsOnlyCollider(hits, endCol))
                 {
                     bestNode = n;
                     lastIndex = i;
                 }
             }
             if (bestNode == null)
-                bestNode = endNode;
+            {
+                print("No path found");
+                return list;
+            }
             list.Add(bestNode);
             lastNode = bestNode;
         }

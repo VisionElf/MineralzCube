@@ -41,6 +41,13 @@ public class Node : IHeapItem<Node>
     }
 
     public void ResetColor() { color = (walkable) ? Color.white : Color.black; }
+    public bool IsInDiagonal(Node node)
+    {
+        return (node.x == x + 1 && node.y == y + 1
+            || node.x == x - 1 && node.y == y + 1
+            || node.x == x + 1 && node.y == y - 1
+            || node.x == x - 1 && node.y == y - 1);
+    }
 
     public override string ToString()
     {

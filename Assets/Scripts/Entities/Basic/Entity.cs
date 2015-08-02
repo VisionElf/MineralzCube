@@ -8,6 +8,7 @@ public class Entity : MonoBehaviour {
     {
         GetComponentInChildren<Collider>().enabled = false;
         Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+        Pathfinding.instance.RefreshCache();
         GameObject.Destroy(gameObject);
     }
 
@@ -15,6 +16,7 @@ public class Entity : MonoBehaviour {
     {
         GetComponentInChildren<Collider>().enabled = true;
         Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+        Pathfinding.instance.RefreshCache();
     }
 
     //PROPERTIES

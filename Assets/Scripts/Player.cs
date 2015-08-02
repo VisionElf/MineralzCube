@@ -21,11 +21,11 @@ public class Player : MonoBehaviour {
     BuildingEntity currentBuild;
     GameObject previewBuild;
 
-    public void CreateStartingUnits(Case c)
+    public void CreateStartingUnits(Vector3 position)
     {
         GameObject obj = GameObject.Instantiate(startingUnit);
         mainBase = obj.GetComponent<MainBaseEntity>();
-        obj.transform.position = Map.instance.SnapToGrid(c.position, mainBase.buildingProperties);
+        obj.transform.position = Map.instance.SnapToGrid(position, mainBase.buildingProperties);
         mainBase.basicProperties.owner = this;
         mainBase.buildingProperties.OnBuildFinish();
 
@@ -158,7 +158,10 @@ public class Player : MonoBehaviour {
     void UpdateKeyboardKeys()
     {
         if (Input.GetKeyDown(KeyCode.W))
-            mainBase.CreateWorkers(5);
+            mainBase.CreateWorkers(1);
+
+        if (Input.GetKeyDown(KeyCode.F1))
+            Other.showDebug = !Other.showDebug;
 
         for (int i = 0; i < buildList.Count; i++)
             if (Input.GetKeyDown(buildShortcuts[i]))
@@ -172,7 +175,7 @@ public class Player : MonoBehaviour {
 
     void OnGUI()
     {
-        if (Other.gameStarted)
+        if (Other.gameStarted && Other.showDebug)
         {
             float fps = 1 / Time.deltaTime;
             fpsList.Add(fps);
@@ -183,14 +186,16 @@ public class Player : MonoBehaviour {
                 avgFps += f;
             avgFps /= fpsList.Count;
 
-            int textWidth = 300;
+            int textWidth = 500;
 
+            GUI.color = Color.black;
             int y = 0;
             GUI.Label(new Rect(0, y, textWidth, 100), "FPS: " + Math.Round(fps, 2));
             y += 20;
             GUI.Label(new Rect(0, y, textWidth, 100), "Average FPS: " + Math.Round(avgFps, 2));
             y += 20;
-            GUI.Label(new Rect(0, y, textWidth, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount + " (" + Pathfinding.instance.cacheCount + " cached)");
+            GUI.Label(new Rect(0, y, textWidth, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount +
+                " (" + Pathfinding.instance.cacheCount + " cached), avg= " + Mathf.Round(Pathfinding.instance.GetAverageTime()) + "ms");
             y += 20;
             GUI.Label(new Rect(0, y, textWidth, 100), "Task Count: " + mainBase.GetTaskCount());
             y += 20;
