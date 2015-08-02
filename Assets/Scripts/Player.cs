@@ -117,11 +117,34 @@ public class Player : MonoBehaviour {
     {
         Vector3 mousePosition = new Vector3();
         RaycastHit hit;
+        bool canBuild = true;
+
         while (!Input.GetMouseButtonDown(0) && currentBuild != null)
         {
             if (GameObject.Find("Grid").GetComponent<Collider>().Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hit, 500f))
                 mousePosition = hit.point;
             previewBuild.transform.position = Map.instance.SnapToGrid(mousePosition, currentBuild);
+
+            canBuild = true;
+            previewBuild.GetComponentInChildren<Dummy>().ResetColor();
+            Vector3 pos = previewBuild.transform.position - new Vector3(currentBuild.caseSizeX, 0, currentBuild.caseSizeY) * Grid.instance.nodeSize / 4 + Vector3.up;
+            showPos = pos;
+            for (int i = 0; i < currentBuild.caseSizeX; i++)
+            {
+                for (int j = 0; j < currentBuild.caseSizeY; j++)
+                {
+                    if (Physics.Raycast(pos + new Vector3(i, 0, j) * Grid.instance.nodeSize, Vector3.down, out hit, 50f, Grid.instance.mask))
+                    {
+                        canBuild = false;
+                        previewBuild.GetComponentInChildren<Dummy>().SetColor(1f, 0f, 0f);
+                        print("hit: " + hit.collider);
+                        break;
+                    }
+                }
+                if (!canBuild)
+                    break;
+            }
+            
             if (Input.GetMouseButtonDown(1))
                 currentBuild = null;
             yield return null;
@@ -131,6 +154,8 @@ public class Player : MonoBehaviour {
         GameObject.Destroy(previewBuild);
         previewBuild = null;
     }
+
+    Vector3 showPos;
 
     public void OnResourcesChanged()
     {
@@ -173,6 +198,16 @@ public class Player : MonoBehaviour {
         UpdateKeyboardKeys();
     }
 
+    void OnDrawGizmos()
+    {
+        if (showPos != null && currentBuild != null)
+        {
+            Gizmos.color = Color.red;
+            for (int i = 0; i < currentBuild.caseSizeX; i++)
+                for (int j = 0; j < currentBuild.caseSizeY; j++)
+                    Gizmos.DrawCube(showPos + new Vector3(i, 0, j) * Grid.instance.nodeSize, Vector3.one * 0.9f);
+        }
+    }
     void OnGUI()
     {
         if (Other.gameStarted && Other.showDebug)

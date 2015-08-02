@@ -60,6 +60,10 @@ public class BuildingEntity : Entity {
 
         if (buildingDummy != null)
             buildingDummy.Hide();
+
+        if (CanAttack())
+            attackProperties.StartScan();
+
         isBuilt = true;
     }
 

@@ -284,7 +284,7 @@ public class Pathfinding : MonoBehaviour
             for (int i = lastIndex + 1; i < path.Count; i++)
             {
                 Node n = path[i];
-                RaycastHit[] hits = Physics.RaycastAll(lastNode.position + Vector3.up, (n.position - lastNode.position).normalized, Vector3.Distance(n.position, lastNode.position), grid.mask);
+                RaycastHit[] hits = Physics.RaycastAll(lastNode.position + Vector3.up * 0.5f, (n.position - lastNode.position).normalized, Vector3.Distance(n.position, lastNode.position), grid.mask);
                 if (hits.Length == 0 || (grid.cornerCutting && n.IsInDiagonal(lastNode)) || HitContainsOnlyCollider(hits, startCol) || HitContainsOnlyCollider(hits, endCol))
                 {
                     bestNode = n;

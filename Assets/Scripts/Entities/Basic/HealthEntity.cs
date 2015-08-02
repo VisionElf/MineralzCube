@@ -8,6 +8,16 @@ public class HealthEntity : Entity {
 
     //PUBLIC PROPERTIES
     public float health { get; set; }
+    float potentialDamage;
+
+    public void AddPotentialDamage(float dmg)
+    {
+        potentialDamage += dmg;
+    }
+    public bool IsPotentiallyDead()
+    {
+        return potentialDamage >= health;
+    }
 
     void Start()
     {
@@ -19,6 +29,7 @@ public class HealthEntity : Entity {
         if (damage > health)
             damage = health;
         health -= damage;
+        potentialDamage -= damage;
         if (health <= 0)
             OnDeath();
     }

@@ -8,7 +8,8 @@ public class AttackEntity : Entity {
     public float attackRange;
     public float attackSpeed;
 
-    public float scanRange;
+    //public float scanRange;
+    public bool allowScan;
     [Range(0.5f, 5f)]
     public float scanSpeed;
 
@@ -38,21 +39,70 @@ public class AttackEntity : Entity {
         else
             targetEntity = mainTargetEntity;
 
-        if (targetEntity != null)
-            StartCoroutine("Attack");
+        AttackSingle(targetEntity);
+    }
+    public void AttackSingle(Entity target)
+    {
+        StopAllCoroutines();
+        targetEntity = target.healthProperties;
+        StartCoroutine("Attack");
     }
 
     public bool AttackTarget(HealthEntity target)
     {
         if (target != null && basicProperties.CanReach(target, attackRange))
         {
+            basicProperties.LookAt(target.transform.position);
             if (projectileType != null)
                 LaunchProjectile(target);
             else
                 target.Damage(attackDamage);
-            return true;
+            return targetEntity != null && targetEntity.IsAlive() && !target.healthProperties.IsPotentiallyDead();
         }
         return false;
+    }
+
+    public void StartScan()
+    {
+        StopAllCoroutines();
+        if (allowScan)
+            StartCoroutine("Scan");
+    }
+    public void StopScan()
+    {
+        StopCoroutine("Scan");
+    }
+
+    public HealthEntity GetClosestEnemy()
+    {
+        HealthEntity closestTarget = null;
+        float minDistance = 0f;
+        foreach (Entity target in Map.instance.GetAllEnemies())
+        {
+            if (target != null && target.HaveHealth() && target.healthProperties.IsAlive() && !target.healthProperties.IsPotentiallyDead() && basicProperties.CanReach(target, attackRange))
+            {
+                float distance = Vector3.Distance(target.transform.position, transform.position);
+                if (distance < minDistance || closestTarget == null)
+                {
+                    closestTarget = target.healthProperties;
+                    minDistance = distance;
+                }
+            }
+        }
+        return closestTarget;
+    }
+
+    IEnumerator Scan()
+    {
+        while (targetEntity == null)
+        {
+            targetEntity = GetClosestEnemy();
+            if (targetEntity != null)
+                break;
+            yield return new WaitForSeconds(scanSpeed);
+        }
+
+        AttackSingle(targetEntity);
     }
 
     public void LaunchProjectile(HealthEntity target)
@@ -68,16 +118,20 @@ public class AttackEntity : Entity {
 
     IEnumerator Attack()
     {
-        while (targetEntity != null && targetEntity.IsAlive())
+        while (targetEntity != null && targetEntity.IsAlive() && !targetEntity.IsPotentiallyDead())
         {
             //REACH
             while (!basicProperties.Reached(targetEntity, attackRange))
                 yield return null;
-            while (targetEntity.IsAlive() && AttackTarget(targetEntity))
+            while (AttackTarget(targetEntity))
                 yield return new WaitForSeconds(attackSpeed);
         }
 
+        targetEntity = null;
+
         if (mainTargetEntity != null && mainTargetEntity.IsAlive())
             AttackTo(mainTargetEntity);
+        else
+            StartScan();
     }
 }

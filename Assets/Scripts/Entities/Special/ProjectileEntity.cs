@@ -3,15 +3,16 @@ using System.Collections;
 
 public class ProjectileEntity : Entity {
 
-    Entity parent;
-    Entity target;
+    AttackEntity parent;
+    HealthEntity target;
     Vector3 targetDestination;
 
-    public void SetTarget(Entity _parent, Entity _target)
+    public void SetTarget(AttackEntity _parent, HealthEntity _target)
     {
         parent = _parent;
         target = _target;
         targetDestination = target.transform.position;
+        target.AddPotentialDamage(parent.attackDamage);
         StartCoroutine("Launch");
     }
 
@@ -30,10 +31,7 @@ public class ProjectileEntity : Entity {
     public void ApplyDamage()
     {
         if (target != null)
-        {
-            if (target.HaveHealth() && parent.CanAttack())
-                target.healthProperties.Damage(parent.attackProperties.attackDamage);
-        }
+            target.Damage(parent.attackDamage);
         RemoveObject();
     }
 }

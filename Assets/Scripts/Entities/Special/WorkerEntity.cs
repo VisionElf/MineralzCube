@@ -243,16 +243,19 @@ public class WorkerEntity : Entity {
             // EMPTY CONTAINER
             DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(transform.position);
 
-            //REACH
-            while (!basicProperties.Reached(depot))
-                yield return null;
-            //DEPOSIT
-            while (DepositResource(depot))
-                yield return new WaitForSeconds(depositSpeed);
+            if (depot != null)
+            {
+                //REACH
+                while (!basicProperties.Reached(depot))
+                    yield return null;
+                //DEPOSIT
+                while (DepositResource(depot))
+                    yield return new WaitForSeconds(depositSpeed);
+            }
         }
 
         //WHEN OVER RETURN TO BASE
-        while (!basicProperties.Reached(mainBase, -mainBase.basicProperties.radius))
+        while (mainBase != null && !basicProperties.Reached(mainBase, -mainBase.basicProperties.radius))
             yield return null;
     }
 

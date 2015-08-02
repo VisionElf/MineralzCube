@@ -296,6 +296,17 @@ public class Map : MonoBehaviour {
         foreach (GameObject ent in GameObject.FindGameObjectsWithTag("Creep"))
             ent.GetComponent<Entity>().RemoveObject();
     }
+    public List<Entity> GetAllEnemies()
+    {
+        List<Entity> list = new List<Entity>();
+        foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Creep"))
+        {
+            Entity ent = obj.GetComponent<Entity>();
+            if (ent != null)
+                list.Add(ent);
+        }
+        return list;
+    }
 
     public List<Case> FindStartingPoints()
     {
