@@ -6,9 +6,9 @@ public class Entity : MonoBehaviour {
     //FUNCTIONS
     public void DisableCollider()
     {
-        Collider collider = GetComponentInChildren<Collider>();
-        if (collider != null)
-            GetComponentInChildren<Collider>().enabled = false;
+        foreach (Collider collider in GetComponentsInChildren<Collider>())
+            if (collider != null)
+                GetComponentInChildren<Collider>().enabled = false;
     }
     public void RemoveObject()
     {
@@ -21,32 +21,23 @@ public class Entity : MonoBehaviour {
     public void ApplyPathMap()
     {
         pathMapApplied = true;
-        Collider collider = GetComponentInChildren<Collider>();
-        if (collider != null)
-        {
-            GetComponentInChildren<Collider>().enabled = true;
-            Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
-            Pathfinding.instance.RefreshCache();
-        }
+        foreach (Collider collider in GetComponentsInChildren<Collider>())
+            if (collider != null)
+                GetComponentInChildren<Collider>().enabled = true;
+        Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+        Pathfinding.instance.RefreshCache();
     }
     public void RemovePathMap()
     {
         pathMapApplied = false;
-        Collider collider = GetComponentInChildren<Collider>();
-        if (collider != null)
-        {
-            GetComponentInChildren<Collider>().enabled = false;
-            Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
-            Pathfinding.instance.RefreshCache();
-        }
+        foreach (Collider collider in GetComponentsInChildren<Collider>())
+            if (collider != null)
+                GetComponentInChildren<Collider>().enabled = false;
+        Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+        Pathfinding.instance.RefreshCache();
     }
 
     //PROPERTIES
-    public Color color
-    {
-        get { return GetComponentInChildren<Renderer>().material.color; }
-        set { GetComponentInChildren<Renderer>().material.color = value; }
-    }
 
     //BASIC
     public bool IsBasic()

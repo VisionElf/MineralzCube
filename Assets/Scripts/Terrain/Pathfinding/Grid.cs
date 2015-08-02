@@ -112,7 +112,9 @@ public class Grid : MonoBehaviour
     public void CheckWalkable(Node node)
     {
         RaycastHit hitInfo;
-        if (Physics.Raycast(node.position + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, mask))
+        float collisionHeight = 1.1f;
+
+        if (Physics.Raycast(node.position + Vector3.up * collisionHeight, Vector3.down, out hitInfo, collisionHeight, mask))
             node.SetWalkable(false, hitInfo.collider);
         else
             node.SetWalkable(true, null);
