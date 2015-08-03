@@ -58,7 +58,7 @@ public class MainBaseEntity : Entity {
         Task temp = taskQueue.GetNextTask(worker);
         if (temp != null)
         {
-            if (!Pathfinding.instance.PathExists(transform.position, temp.GetTarget().transform.position, 0f))
+            if (!worker.basicProperties.CanReach(temp.GetTarget()))
             {
                 RemoveTask(temp);
                 return GetNextTask(worker);

@@ -60,28 +60,22 @@ public class Pathfinding : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.P))
-            FindPath(start.position, end.position, 0f);
+            FindPath(new PathfindingParameters(start.position, end.position));
 
         /*if (Input.GetKeyDown(KeyCode.O))
             advance = true;*/
     }
 
-    public bool PathExists(Vector3 start, Vector3 end, float radius)
+    public bool PathExists(Vector3 start, Vector3 end)
     {
-        Collider temp;
-        return FindPath(start, end, radius, true, false, out temp).Count > 0;
+        return FindPath(new PathfindingParameters(start, end) { onlyCheckExists = true }).path.Count > 0;
     }
-    public List<Vector3> FindPath(Vector3 start, Vector3 end, float radius)
+
+    public PathfindingResult FindPath(PathfindingParameters parameters)
     {
-        Collider temp;
-        return FindPath(start, end, radius, false, false, out temp);
-        //return new List<Vector3>();
-    }
-    public List<Vector3> FindPath(Vector3 start, Vector3 end, float radius, bool checkExists, bool ignoreStructure, out Collider structureHit)
-    {
-        structureHit = null;
-        Node startNode = grid.GetNodeAt(start);
-        Node endNode = grid.GetNodeAt(end);
+        PathfindingResult result = new PathfindingResult();
+        Node startNode = grid.GetNodeAt(parameters.start);
+        Node endNode = grid.GetNodeAt(parameters.end);
 
         if (displayPathfinding)
             grid.ResetColors();
@@ -96,7 +90,8 @@ public class Pathfinding : MonoBehaviour
             if (displayCacheDebug)
                 print("[FOUND] Path of " + cacheResult.Count + " waypoint(s) in cache: " + key);
             cacheCallCount++;
-            return new List<Vector3>(cacheResult);
+            result.path = new List<Vector3>(cacheResult);
+            return result;
         }
 
         callCount++;
@@ -109,9 +104,9 @@ public class Pathfinding : MonoBehaviour
         RaycastHit hitInfo;
         Collider startObstacle = null;
         Collider endObstacle = null;
-        if (Physics.Raycast(start + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, grid.mask))
+        if (Physics.Raycast(parameters.start + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, grid.mask))
             startObstacle = hitInfo.collider;
-        if (Physics.Raycast(end + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, grid.mask))
+        if (Physics.Raycast(parameters.end + new Vector3(0, 5f, 0), Vector3.down, out hitInfo, 10f, grid.mask))
             endObstacle = hitInfo.collider;
 
         Heap<Node> openList = new Heap<Node>(grid.gridSize);
@@ -129,15 +124,12 @@ public class Pathfinding : MonoBehaviour
             if (currentNode == endNode)
             {
                 path = RetracePath(endNode, startNode);
-                if (ignoreStructure)
+                foreach (Node n in path)
                 {
-                    foreach (Node n in path)
+                    if (n.obstacle != null)
                     {
-                        if (n.obstacle != null)
-                        {
-                            structureHit = n.obstacle;
-                            break;
-                        }
+                        result.firstStructureHit = n.obstacle;
+                        break;
                     }
                 }
                 break;
@@ -150,7 +142,7 @@ public class Pathfinding : MonoBehaviour
                 if (!n.walkable)
                 {
                     if (n.obstacle != startObstacle && n.obstacle != endObstacle)
-                        if (!ignoreStructure || n.obstacle.tag != "Building")
+                        if (!parameters.ignoreStructure || n.obstacle.tag != "Building")
                             continue;
                 }
                 
@@ -176,8 +168,8 @@ public class Pathfinding : MonoBehaviour
                 currentNode.SetColor(Color.red);
         }
 
-        List<Vector3> result = new List<Vector3>();
-        if (path.Count > 0 && !checkExists)
+        List<Vector3> resultPath = new List<Vector3>();
+        if (path.Count > 0 && !parameters.onlyCheckExists)
         {
             if (displayPathfinding)
                 foreach (Node n in path)
@@ -193,13 +185,13 @@ public class Pathfinding : MonoBehaviour
 
         if (path.Count > 0)
         {
-            result = NodeListToWaypoints(path);
+            resultPath = NodeListToWaypoints(path);
 
             if (useEndPrecisePosition)
             {
-                if (result.Count > 0)
-                    result.RemoveAt(result.Count - 1);
-                result.Add(end);
+                if (resultPath.Count > 0)
+                    resultPath.RemoveAt(resultPath.Count - 1);
+                resultPath.Add(parameters.end);
             }
             
             
@@ -207,13 +199,13 @@ public class Pathfinding : MonoBehaviour
                 result = CorrectPathForRadius(result, radius);*/
         }
         if (!Grid.colorLocked)
-            showVector = result;
+            showVector = resultPath;
 
-        if (result.Count > 0 && useCache && !checkExists)
+        if (resultPath.Count > 0 && useCache && !parameters.onlyCheckExists)
         {
-            cachePathfinding.Add(key, result);
+            cachePathfinding.Add(key, resultPath);
             if (displayCacheDebug)
-                print("[ADDED] Path of " + result.Count + " waypoint(s) in cache: " + key);
+                print("[ADDED] Path of " + resultPath.Count + " waypoint(s) in cache: " + key);
         }
         sw.Stop();
 
@@ -221,7 +213,8 @@ public class Pathfinding : MonoBehaviour
         if (time > 0)
             averageTimes.Add(time);
 
-        return new List<Vector3>(result);
+        result.path = new List<Vector3>(resultPath);
+        return result;
     }
 
     public List<Node> RetracePath(Node end, Node start)
@@ -237,28 +230,6 @@ public class Pathfinding : MonoBehaviour
 
         path.Reverse();
         return path;
-    }
-
-    public List<Node> SmoothPath(List<Node> path)
-    {
-        List<Node> list = new List<Node>();
-        Node lastNode = path[0];
-        list.Add(lastNode);
-        RaycastHit hitInfo;
-        for (int i = 1; i < path.Count; i++)
-        {
-            Node p = path[i - 1];
-            Node n = path[i];
-            if (lastNode != null)
-                if (!Physics.Raycast(lastNode.position + Vector3.up, (n.position - lastNode.position).normalized, out hitInfo, Vector3.Distance(n.position, lastNode.position), grid.mask))
-                    continue;
-            list.Add(p);
-            lastNode = p;
-        }
-        Node endNode = path[path.Count - 1];
-        if (!list.Contains(endNode))
-            list.Add(endNode);
-        return list;
     }
 
     public List<Vector3> NodeListToWaypoints(List<Node> path)
@@ -370,3 +341,32 @@ public class Pathfinding : MonoBehaviour
     }
 }
 
+public class PathfindingResult
+{
+    public List<Vector3> path { get; set; }
+    public Collider firstStructureHit { get; set; }
+
+    public PathfindingResult()
+    {
+        path = null;
+        firstStructureHit = null;
+    }
+}
+
+public class PathfindingParameters
+{
+    public Vector3 start { get; set; }
+    public Vector3 end { get; set; }
+    public float radius { get; set; }
+    public bool onlyCheckExists { get; set; }
+    public bool ignoreStructure { get; set; }
+
+    public PathfindingParameters(Vector3 _start, Vector3 _end)
+    {
+        start = _start;
+        end = _end;
+        radius = 0f;
+        onlyCheckExists = false;
+        ignoreStructure = false;
+    }
+}

@@ -84,7 +84,7 @@ public class BasicEntity : Entity {
         if (Vector3.Distance(entity.transform.position, transform.position) <= range + entity.basicProperties.radius + radius)
             return true;
         else if (IsMovable())
-            return Pathfinding.instance.PathExists(transform.position, entity.transform.position, radius);
+            return movableProperties.ignoreCollisions || Pathfinding.instance.PathExists(transform.position, entity.transform.position);
         return false;
     }
 

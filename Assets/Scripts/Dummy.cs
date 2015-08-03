@@ -10,6 +10,7 @@ public class Dummy : MonoBehaviour {
     public Vector3 defaultScale { get; set; }
 
     float decalageY;
+    bool visible;
 
     //PROPERTIES
     void Awake()
@@ -18,6 +19,7 @@ public class Dummy : MonoBehaviour {
         defaultScale = transform.localScale;
         decalageY = defaultPosition.y - (defaultScale.y / 2);
         defaultPosition -= new Vector3(0, decalageY, 0);
+        visible = true;
     }
 
     public void ScaleY(float percent)
@@ -32,19 +34,28 @@ public class Dummy : MonoBehaviour {
         }
     }
 
-    public Renderer dummyRenderer
-    {
-        get { return GetComponent<Renderer>(); }
-    }
     public Color color
     {
-        get { return dummyRenderer.material.color; }
-        set { dummyRenderer.material.color = value; }
+        set {
+            foreach (Renderer r in GetComponentsInChildren<Renderer>())
+                r.material.color = value;
+        }
+    }
+    public Material material
+    {
+        set
+        {
+            foreach (Renderer r in GetComponentsInChildren<Renderer>())
+                r.material = value;
+        }
     }
 
     public void SetColor(float r, float g, float b)
     {
-        color = new Color(r, g, b, color.a);
+        if (defaultMaterial != null)
+            color = new Color(r, g, b, defaultMaterial.color.a);
+        else
+            color = new Color(r, g, b, 1f);
     }
     public void SetColor(float r, float g, float b, float a)
     {
@@ -58,10 +69,25 @@ public class Dummy : MonoBehaviour {
 
     public void Hide()
     {
-        gameObject.SetActive(false);
+        if (visible)
+        {
+            visible = false;
+            foreach (Renderer r in GetComponentsInChildren<Renderer>())
+                r.enabled = visible;
+        }
     }
     public void Show()
     {
-        gameObject.SetActive(true);
+        if (!visible)
+        {
+            visible = true;
+            foreach (Renderer r in GetComponentsInChildren<Renderer>())
+                r.enabled = visible;
+        }
+    }
+
+    public void DestroyDummy()
+    {
+        GameObject.Destroy(gameObject);
     }
 }

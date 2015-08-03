@@ -28,15 +28,11 @@ public class ResourceStock
     public void CreateDummyList()
     {
         dummyList = new List<Dummy>();
-        for (int i = dummyListStart; i <= dummyListEnd; i++)
+        foreach (Transform obj in parent.transform)
         {
-            GameObject obj = Static.FindChild(parent, "R" + i);
-            if (obj != null)
-            {
-                Dummy dummy;
-                if ((dummy = obj.GetComponent<Dummy>()) != null)
-                    dummyList.Add(dummy);
-            }
+            Dummy dummy;
+            if ((dummy = obj.GetComponent<Dummy>()) != null)
+                dummyList.Add(dummy);
         }
         foreach (Dummy d in dummyList)
             dummyTotalSize += d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;

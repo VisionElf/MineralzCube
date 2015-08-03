@@ -128,7 +128,7 @@ public class WorkerEntity : Entity {
             // EMPTY CONTAINER
             if (!resourceContainer.IsEmpty())
             {
-                DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(transform.position, currentResourceHarvested);
+                DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(this, currentResourceHarvested);
                 if (depot != null)
                 {
                     //REACH
@@ -158,7 +158,7 @@ public class WorkerEntity : Entity {
                 print("[ERROR] ON A MERDER QUELQUE PART");
 
             //FILL CONTAINER
-            DepotEntity depot = basicProperties.owner.GetNearestDepotNotEmpty(transform.position, currentBuildResource);
+            DepotEntity depot = basicProperties.owner.GetNearestDepotNotEmpty(this, currentBuildResource);
             if (depot != null)
             {
                 //REACH
@@ -183,7 +183,7 @@ public class WorkerEntity : Entity {
             {
                 // EMPTY CONTAINER
                 EResourceType depositResourceType = resourceContainer.GetCurrentResourceType();
-                DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(transform.position, depositResourceType);
+                DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(this, depositResourceType);
 
                 if (depot2 != null)
                 {
@@ -204,7 +204,7 @@ public class WorkerEntity : Entity {
         {
             // EMPTY CONTAINER
             EResourceType depositResourceType = resourceContainer.GetCurrentResourceType();
-            DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(transform.position, depositResourceType);
+            DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(this, depositResourceType);
 
             if (depot2 != null)
             {

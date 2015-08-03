@@ -25,10 +25,9 @@ public class AttackEntity : Entity {
         StopCoroutine("Attack");
         targetEntity = null;
         mainTargetEntity = entity.healthProperties;
-        Collider structureHit;
-        if (!Pathfinding.instance.PathExists(transform.position, entity.transform.position, basicProperties.radius))
+        if (!Pathfinding.instance.PathExists(transform.position, entity.transform.position))
         {
-            Pathfinding.instance.FindPath(transform.position, entity.transform.position, basicProperties.radius, false, true, out structureHit);
+            Collider structureHit = Pathfinding.instance.FindPath(new PathfindingParameters(transform.position, entity.transform.position) { ignoreStructure = true }).firstStructureHit;
 
             if (structureHit != null)
                 targetEntity = structureHit.GetComponent<HealthEntity>();

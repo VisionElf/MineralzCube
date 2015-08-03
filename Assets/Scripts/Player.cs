@@ -11,7 +11,8 @@ public class Player : MonoBehaviour {
     public GameObject startingUnit;
 
     public List<BuildingEntity> buildList;
-    public GameObject previewBuildObject;
+
+    public Material previewBuildMaterial;
     KeyCode[] buildShortcuts = new KeyCode[] { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7 };
 
     //PROPERTIES
@@ -19,7 +20,7 @@ public class Player : MonoBehaviour {
     List<DepotEntity> depots = new List<DepotEntity>();
 
     BuildingEntity currentBuild;
-    GameObject previewBuild;
+    Dummy previewBuild;
 
     public void CreateStartingUnits(Vector3 position)
     {
@@ -41,15 +42,15 @@ public class Player : MonoBehaviour {
             loadingScreen.SetActive(false);
     }
 
-    public DepotEntity GetNearestDepotNotEmpty(Vector3 position, EResourceType resourceType)
+    public DepotEntity GetNearestDepotNotEmpty(Entity entity, EResourceType resourceType)
     {
         DepotEntity nearestDepot = null;
         float minDistance = 0f;
         foreach (DepotEntity depot in depots)
         {
-            if (depot.buildingProperties.isBuilt && !depot.IsEmpty(resourceType) && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
+            if (depot.buildingProperties.isBuilt && !depot.IsEmpty(resourceType) && entity.basicProperties.CanReach(depot))
             {
-                float distance = Vector3.Distance(depot.transform.position, position);
+                float distance = Vector3.Distance(depot.transform.position, entity.transform.position);
                 if (distance < minDistance || nearestDepot == null)
                 {
                     nearestDepot = depot;
@@ -59,15 +60,15 @@ public class Player : MonoBehaviour {
         }
         return nearestDepot;
     }
-    public DepotEntity GetNearestDepotNotFull(Vector3 position, EResourceType resourceType)
+    public DepotEntity GetNearestDepotNotFull(Entity entity, EResourceType resourceType)
     {
         DepotEntity nearestDepot = null;
         float minDistance = 0f;
         foreach (DepotEntity depot in depots)
         {
-            if (depot.buildingProperties.isBuilt && !depot.IsFull(resourceType) && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
+            if (depot.buildingProperties.isBuilt && !depot.IsFull(resourceType) && entity.basicProperties.CanReach(depot))
             {
-                float distance = Vector3.Distance(depot.transform.position, position);
+                float distance = Vector3.Distance(depot.transform.position, entity.transform.position);
                 if (distance < minDistance || nearestDepot == null)
                 {
                     nearestDepot = depot;
@@ -88,12 +89,16 @@ public class Player : MonoBehaviour {
 
     public void PlaceBuilding(BuildingEntity building)
     {
+        StopCoroutine("UpdateBuild");
+
         currentBuild = building;
         if (previewBuild != null)
-            GameObject.Destroy(previewBuild);
-        previewBuild = GameObject.Instantiate(previewBuildObject);
-        previewBuild.transform.localScale = new Vector3(building.caseSizeX, 1, building.caseSizeY);
-        StopCoroutine("UpdateBuild");
+            previewBuild.DestroyDummy();
+        GameObject previewObj = GameObject.Instantiate(building.model);
+        previewBuild = previewObj.GetComponent<Dummy>();
+        previewBuild.defaultMaterial = previewBuildMaterial;
+        previewBuild.material = previewBuildMaterial;
+
         StartCoroutine("UpdateBuild");
     }
     public void StartBuild()
@@ -112,7 +117,6 @@ public class Player : MonoBehaviour {
         }
     }
 
-    List<float> fpsList = new List<float>();
 
     IEnumerator UpdateBuild()
     {
@@ -127,7 +131,7 @@ public class Player : MonoBehaviour {
             previewBuild.transform.position = Map.instance.SnapToGrid(mousePosition, currentBuild);
 
             canBuild = true;
-            previewBuild.GetComponentInChildren<Dummy>().ResetColor();
+            previewBuild.ResetColor();
             Vector3 pos = previewBuild.transform.position - new Vector3(currentBuild.caseSizeX, 0, currentBuild.caseSizeY) * Grid.instance.nodeSize / 4 + Vector3.up * 10f;
             for (int i = 0; i < currentBuild.caseSizeX; i++)
             {
@@ -136,7 +140,7 @@ public class Player : MonoBehaviour {
                     if (Physics.Raycast(pos + new Vector3(i, 0, j) * Grid.instance.nodeSize, Vector3.down, out hit, 20f, Grid.instance.mask))
                     {
                         canBuild = false;
-                        previewBuild.GetComponentInChildren<Dummy>().SetColor(1f, 0f, 0f);                       
+                        previewBuild.SetColor(1f, 0f, 0f);                       
                         break;
                     }
                 }
@@ -152,7 +156,8 @@ public class Player : MonoBehaviour {
         }
 
         StartBuild();
-        GameObject.Destroy(previewBuild);
+        if (previewBuild != null)
+            previewBuild.DestroyDummy();
         previewBuild = null;
     }
 
@@ -189,54 +194,103 @@ public class Player : MonoBehaviour {
 
         for (int i = 0; i < buildList.Count; i++)
             if (Input.GetKeyDown(buildShortcuts[i]))
+            {
                 PlaceBuilding(buildList[i]);
+                break;
+            }
     }
     void Update()
     {
         UpdateMouseButtons();
         UpdateKeyboardKeys();
+
+        UpdateFPS();
+    }
+
+    List<float> fpsList = new List<float>();
+    float avgFps;
+    void UpdateFPS()
+    {
+        float fps = 1 / Time.deltaTime;
+        fpsList.Add(fps);
+        if (fpsList.Count > 10000)
+            fpsList.RemoveAt(0);
+
+        avgFps = 0;
+        foreach (float f in fpsList)
+            avgFps += f;
+        avgFps /= fpsList.Count;
     }
 
     void OnGUI()
     {
-        if (Other.gameStarted && Other.showDebug)
+        if (Other.gameStarted)
         {
-            float fps = 1 / Time.deltaTime;
-            fpsList.Add(fps);
-            if (fpsList.Count > 10000)
-                fpsList.RemoveAt(0);
-            float avgFps = 0;
-            foreach (float f in fpsList)
-                avgFps += f;
-            avgFps /= fpsList.Count;
-
-            int textWidth = 500;
-
-            GUI.color = Color.black;
-            int y = 0;
-            GUI.Label(new Rect(0, y, textWidth, 100), "FPS: " + Math.Round(fps, 2));
-            y += 20;
-            GUI.Label(new Rect(0, y, textWidth, 100), "Average FPS: " + Math.Round(avgFps, 2));
-            y += 20;
-            GUI.Label(new Rect(0, y, textWidth, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount +
-                " (" + Pathfinding.instance.cacheCount + " cached), avg= " + Mathf.Round(Pathfinding.instance.GetAverageTime()) + "ms");
-            y += 20;
-            GUI.Label(new Rect(0, y, textWidth, 100), "Task Count: " + mainBase.GetTaskCount());
-            y += 20;
-
-            int size = 1;
-            int width = 300;
-            int height = 120;
-            Vector2 fpsPos = new Vector2(Screen.width - width, Screen.height - height);
-            GUI.color = new Color(0, 0, 0, 0.8f);
-            GUI.DrawTexture(new Rect(fpsPos.x, fpsPos.y, width * size, height * size), Static.basic_texture);
-            for (int i = Math.Max(0, fpsList.Count - (width / size)); i < fpsList.Count; i++)
-            {
-                GUI.color = Color.white;
-                GUI.DrawTexture(new Rect(fpsPos.x + (fpsList.Count - i) * size, fpsPos.y + height - (fpsList[i] * size), size, size), Static.basic_texture);
-            }
-
+            DrawInterface();
             //DrawMinimap();
+
+            if (Other.showDebug)
+            {
+                int textWidth = 500;
+                GUI.color = Color.black;
+                int y = 0;
+                GUI.Label(new Rect(0, y, textWidth, 100), "FPS: " + Math.Round(fpsList[fpsList.Count - 1], 2));
+                y += 20;
+                GUI.Label(new Rect(0, y, textWidth, 100), "Average FPS: " + Math.Round(avgFps, 2));
+                y += 20;
+                GUI.Label(new Rect(0, y, textWidth, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount +
+                    " (" + Pathfinding.instance.cacheCount + " cached), avg= " + Mathf.Round(Pathfinding.instance.GetAverageTime()) + "ms");
+                y += 20;
+                GUI.Label(new Rect(0, y, textWidth, 100), "Task Count: " + mainBase.GetTaskCount());
+                y += 20;
+
+                int size = 1;
+                int width = 300;
+                int height = 120;
+                Vector2 fpsPos = new Vector2(Screen.width - width, Screen.height - height);
+                GUI.color = new Color(0, 0, 0, 0.8f);
+                GUI.DrawTexture(new Rect(fpsPos.x, fpsPos.y, width * size, height * size), Static.basic_texture);
+                for (int i = Math.Max(0, fpsList.Count - (width / size)); i < fpsList.Count; i++)
+                {
+                    GUI.color = Color.white;
+                    GUI.DrawTexture(new Rect(fpsPos.x + (fpsList.Count - i) * size, fpsPos.y + height - (fpsList[i] * size), size, size), Static.basic_texture);
+                }
+            }
+        }
+    }
+
+    void DrawInterface()
+    {
+        int iconSize = 64;
+        int interval = 5;
+        int totalDistance = (iconSize * buildList.Count) + (interval * (buildList.Count - 1));
+        int startX = totalDistance / 2;
+
+        Vector3 position = new Vector3(Screen.width / 2 - startX, Screen.height - iconSize);
+        for (int i = 0; i < buildList.Count; i++)
+        {
+            GUI.color = Color.white;
+            if (currentBuild == buildList[i])
+                GUI.color = Color.green;
+            Rect rect = new Rect(position.x, position.y, iconSize, iconSize);
+            GUI.DrawTexture(rect, buildList[i].buildingIcon);
+
+            GUIStyle style = new GUIStyle();
+            style.font = Resources.Load("AGENCYB") as Font;
+            style.fontSize = 14;
+            style.normal.textColor = Color.white;
+
+            GUIContent content = new GUIContent(buildList[i].name);
+            Vector3 textSize = style.CalcSize(content);
+            Rect textRect = new Rect(rect.x + (iconSize - textSize.x)  / 2, rect.y + iconSize - textSize.y, rect.width, rect.height);
+            GUI.Label(textRect, content, style);
+
+            GUIContent content2 = new GUIContent(buildShortcuts[i].ToString());
+            //Vector3 textSize2 = style.CalcSize(content2);
+            Rect textRect2 = new Rect(rect.x, rect.y, rect.width, rect.height);
+            GUI.Label(textRect2, content2, style);
+
+            position.x += iconSize + interval;
         }
     }
 

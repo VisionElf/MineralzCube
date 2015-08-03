@@ -13,7 +13,7 @@ public class Entity : MonoBehaviour {
     public void RemoveObject()
     {
         RemovePathMap();
-        GameObject.Destroy(gameObject);
+        Destroy(gameObject);
     }
 
     bool pathMapApplied;

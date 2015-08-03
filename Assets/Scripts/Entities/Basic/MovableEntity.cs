@@ -20,7 +20,7 @@ public class MovableEntity : Entity {
     public void FindWaypoints(Vector3 target)
     {
         targetDestination = target;
-        waypoints = Pathfinding.instance.FindPath(transform.position, target, basicProperties.radius);
+        waypoints = Pathfinding.instance.FindPath(new PathfindingParameters(transform.position, target)).path;
     }
 
     public void MoveTowards(Vector3 destination)

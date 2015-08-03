@@ -34,7 +34,7 @@ public class HarvestTask : Task {
     }
     public override bool PauseCondition(WorkerEntity worker)
     {
-        return worker.resourceContainer.IsFull(resource.resourceType) && worker.basicProperties.owner.GetNearestDepotNotFull(worker.transform.position, resource.resourceType) == null;
+        return worker.resourceContainer.IsFull(resource.resourceType) && worker.basicProperties.owner.GetNearestDepotNotFull(worker, resource.resourceType) == null;
     }
 
     public override void OnAdd()

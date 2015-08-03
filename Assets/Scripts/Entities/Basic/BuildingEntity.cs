@@ -9,6 +9,8 @@ public class BuildingEntity : Entity {
     public int caseSizeX;
     public int caseSizeY;
 
+    public Texture buildingIcon;
+
     public Dummy buildingDummy;
     public GameObject model;
     public float sizeY;
