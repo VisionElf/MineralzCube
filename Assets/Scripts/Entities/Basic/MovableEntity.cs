@@ -20,7 +20,24 @@ public class MovableEntity : Entity {
     public void FindWaypoints(Vector3 target)
     {
         targetDestination = target;
-        waypoints = Pathfinding.instance.FindPath(new PathfindingParameters(transform.position, target)).path;
+        Pathfinding.RequestPath(new PathfindingParameters(transform.position, target), OnPathFound);
+        //waypoints = Pathfinding.instance.FindPath(new PathfindingParameters(transform.position, target)).path;
+    }
+
+    public void OnPathFound(PathfindingResult result)
+    {
+        waypoints = result.path;
+
+        if (waypoints.Count > 0)
+        {
+            Vector3 currentWaypoint = waypoints[0];
+            float distance = Vector3.Distance(transform.position, currentWaypoint);
+            if (distance <= 0)
+                waypoints.Remove(currentWaypoint);
+            DirectMoveTowards(currentWaypoint);
+        }
+        else
+            targetDestination = Vector3.zero;
     }
 
     public void MoveTowards(Vector3 destination)

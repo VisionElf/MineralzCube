@@ -8,10 +8,18 @@ public class CameraController : MonoBehaviour {
     public int cameraScrollingRange;
     public bool cameraScrollActive;
 
+    public int cameraZooming;
+    public int cameraMaxZooming;
+
     //FUNCTIONS
     void Start()
     {
         Cursor.lockState = CursorLockMode.Confined;
+    }
+
+    public Camera mainCamera
+    {
+        get { return GetComponent<Camera>(); }
     }
 
     public void PanCamera(Vector3 position)
@@ -27,13 +35,34 @@ public class CameraController : MonoBehaviour {
         if (Other.gameStarted)
         {
             if (Input.GetKey(KeyCode.UpArrow) || (cameraScrollActive && Input.mousePosition.y >= Screen.height + cameraScrollingRange))
-                transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.up) * Time.deltaTime;
+                transform.localPosition += new Vector3(1, 0, 1) * cameraSpeed * Time.deltaTime;
             else if (Input.GetKey(KeyCode.DownArrow) || (cameraScrollActive && Input.mousePosition.y <= cameraScrollingRange))
-                transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.down) * Time.deltaTime;
+                transform.localPosition += new Vector3(-1, 0, -1) * cameraSpeed * Time.deltaTime;
             if (Input.GetKey(KeyCode.LeftArrow) || (cameraScrollActive && Input.mousePosition.x <= cameraScrollingRange))
-                transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.left) * Time.deltaTime;
+                transform.localPosition += new Vector3(-1, 0, 1) * cameraSpeed * Time.deltaTime;
             else if (Input.GetKey(KeyCode.RightArrow) || (cameraScrollActive && Input.mousePosition.x >= Screen.width - cameraScrollingRange))
-                transform.localPosition += cameraSpeed * transform.TransformVector(Vector3.right) * Time.deltaTime;
+                transform.localPosition += new Vector3(1, 0, -1) * cameraSpeed * Time.deltaTime;
+
+
+            if (Input.GetMouseButtonDown(2))
+            {
+                float temp = Mathf.Sign(10 - mainCamera.orthographicSize);
+                while (mainCamera.orthographicSize != 10)
+                {
+                    mainCamera.orthographicSize += cameraZooming * temp;
+                    transform.localPosition += new Vector3(-1, 1, -1) * cameraZooming * temp;
+                }
+            }
+            else if (Input.mouseScrollDelta.y > 0 && mainCamera.orthographicSize > cameraZooming)
+            {
+                mainCamera.orthographicSize -= cameraZooming;
+                transform.localPosition += new Vector3(1, -1, 1) * cameraZooming;
+            }
+            else if (Input.mouseScrollDelta.y < 0 && mainCamera.orthographicSize < cameraMaxZooming)
+            {
+                mainCamera.orthographicSize += cameraZooming;
+                transform.localPosition += new Vector3(-1, 1, -1) * cameraZooming;
+            }
 
             if (Input.GetKeyDown(KeyCode.Escape))
             {

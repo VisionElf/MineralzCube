@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
+using System;
+
 public class Pathfinding : MonoBehaviour
 {
     Grid grid;
@@ -57,13 +59,49 @@ public class Pathfinding : MonoBehaviour
         cachePathfinding.Clear();
     }
 
+    Node n;
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.P))
             FindPath(new PathfindingParameters(start.position, end.position));
 
+        if (Other.gameStarted)
+        {
+            if (n != null)
+                n.ResetColor();
+            n = grid.GetNodeAt(start.position);
+            if (n != null)
+                n.SetColor(Color.red);
+        }
+
         /*if (Input.GetKeyDown(KeyCode.O))
             advance = true;*/
+    }
+
+    static Queue<PathfindingRequest> pathRequests = new Queue<PathfindingRequest>();
+    static bool pathRequestActive;
+
+    static public void RequestPath(PathfindingParameters parameters, Action<PathfindingResult> callback)
+    {
+        pathRequests.Enqueue(new PathfindingRequest(parameters, callback));
+        if (!pathRequestActive)
+        {
+            instance.StopCoroutine("CalculPaths");
+            pathRequestActive = true;
+            instance.StartCoroutine("CalculPaths");
+        }
+    }
+
+    IEnumerator CalculPaths()
+    {
+        while (pathRequests.Count > 0)
+        {
+            PathfindingRequest request = pathRequests.Dequeue();
+            request.callback(FindPath(request.parameter));
+            yield return null;
+        }
+
+        pathRequestActive = false;
     }
 
     public bool PathExists(Vector3 start, Vector3 end)
@@ -71,7 +109,7 @@ public class Pathfinding : MonoBehaviour
         return FindPath(new PathfindingParameters(start, end) { onlyCheckExists = true }).path.Count > 0;
     }
 
-    public PathfindingResult FindPath(PathfindingParameters parameters)
+    PathfindingResult FindPath(PathfindingParameters parameters)
     {
         PathfindingResult result = new PathfindingResult();
         Node startNode = grid.GetNodeAt(parameters.start);
@@ -338,6 +376,17 @@ public class Pathfinding : MonoBehaviour
                     Gizmos.DrawSphere(showPoints[i], 0.1f);
             }
         }
+    }
+}
+
+public class PathfindingRequest
+{
+    public PathfindingParameters parameter;
+    public Action<PathfindingResult> callback;
+    public PathfindingRequest(PathfindingParameters _params, Action<PathfindingResult> _callback)
+    {
+        parameter = _params;
+        callback = _callback;
     }
 }
 

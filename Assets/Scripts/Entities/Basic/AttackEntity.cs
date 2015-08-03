@@ -27,19 +27,32 @@ public class AttackEntity : Entity {
         mainTargetEntity = entity.healthProperties;
         if (!Pathfinding.instance.PathExists(transform.position, entity.transform.position))
         {
-            Collider structureHit = Pathfinding.instance.FindPath(new PathfindingParameters(transform.position, entity.transform.position) { ignoreStructure = true }).firstStructureHit;
+            Pathfinding.RequestPath(new PathfindingParameters(transform.position, entity.transform.position) { ignoreStructure = true }, OnPathFound);
+            /*Collider structureHit = Pathfinding.instance.FindPath(new PathfindingParameters(transform.position, entity.transform.position) { ignoreStructure = true }).firstStructureHit;
 
             if (structureHit != null)
                 targetEntity = structureHit.GetComponent<HealthEntity>();
             else
-                print("[ERROR] No structure found and no path without structure found");
+                print("[ERROR] No structure found and no path without structure found");*/
 
         }
         else
+        {
             targetEntity = mainTargetEntity;
-
-        AttackSingle(targetEntity);
+            AttackSingle(targetEntity);
+        }
     }
+    public void OnPathFound(PathfindingResult result)
+    {
+        if (result.firstStructureHit != null)
+        {
+            targetEntity = result.firstStructureHit.GetComponent<HealthEntity>();
+            AttackSingle(targetEntity);
+        }
+        else
+            print("[ERROR] No structure found and no path without structure found");
+    }
+
     public void AttackSingle(Entity target)
     {
         StopAllCoroutines();
