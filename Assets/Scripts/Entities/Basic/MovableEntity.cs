@@ -56,12 +56,6 @@ public class MovableEntity : Entity {
                     }
                     DirectMoveTowards(currentWaypoint);
 
-                    /*if (waypoints.Count > 1)
-                    {
-                        Collider[] hits = Physics.OverlapSphere(transform.position, basicProperties.radius - 0.1f, Grid.instance.mask);
-                        foreach (Collider hit in hits)
-                            transform.position += (transform.position - hit.ClosestPointOnBounds(transform.position)).normalized * basicProperties.radius;
-                    }*/
                 }
             }
         }
@@ -73,6 +67,11 @@ public class MovableEntity : Entity {
         waypoints.Clear();
     }
 
+    public void DirectMoveToDir(Vector3 direction)
+    {
+        basicProperties.LookAt(transform.position + direction);
+        transform.position += direction * speed * Time.deltaTime;
+    }
     public void DirectMoveTowards(Vector3 position)
     {
         basicProperties.LookAt(position);
