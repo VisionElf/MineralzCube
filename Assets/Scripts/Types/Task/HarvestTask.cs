@@ -18,21 +18,23 @@ public class HarvestTask : Task {
 
     public override bool DoTask(WorkerEntity worker)
     {
-        return worker.HarvestResource2(resource);
-        /*if (!worker.HarvestResource(resource))
-            if (!worker.BringCargo())
-                return resource != null;
-        return true;*/
+        return worker.HarvestResource(resource);
     }
+
     public override bool Done()
     {
         return resource == null || resource.Empty();
     }
 
+    public override bool PauseCondition()
+    {
+        foreach (WorkerEntity worker in workersList)
+            paused = PauseCondition(worker);
+        return paused;
+    }
     public override bool PauseCondition(WorkerEntity worker)
     {
-        paused = worker.resourceContainer.IsFull() && worker.basicProperties.owner.GetNearestDepotNotFull(worker.transform.position) == null;
-        return paused;
+        return worker.resourceContainer.IsFull(resource.resourceType) && worker.basicProperties.owner.GetNearestDepotNotFull(worker.transform.position, resource.resourceType) == null;
     }
 
     public override void OnAdd()

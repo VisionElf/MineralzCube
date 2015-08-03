@@ -36,16 +36,18 @@ public class Player : MonoBehaviour {
     public void OnGameStarted()
     {
         Other.gameStarted = true;
-        GameObject.Find("LoadingScreen").SetActive(false);
+        GameObject loadingScreen = GameObject.Find("LoadingScreen");
+        if (loadingScreen != null)
+            loadingScreen.SetActive(false);
     }
 
-    public DepotEntity GetNearestDepotNotEmpty(Vector3 position)
+    public DepotEntity GetNearestDepotNotEmpty(Vector3 position, EResourceType resourceType)
     {
         DepotEntity nearestDepot = null;
         float minDistance = 0f;
         foreach (DepotEntity depot in depots)
         {
-            if (depot.buildingProperties.isBuilt && !depot.IsEmpty() && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
+            if (depot.buildingProperties.isBuilt && !depot.IsEmpty(resourceType) && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
             {
                 float distance = Vector3.Distance(depot.transform.position, position);
                 if (distance < minDistance || nearestDepot == null)
@@ -57,13 +59,13 @@ public class Player : MonoBehaviour {
         }
         return nearestDepot;
     }
-    public DepotEntity GetNearestDepotNotFull(Vector3 position)
+    public DepotEntity GetNearestDepotNotFull(Vector3 position, EResourceType resourceType)
     {
         DepotEntity nearestDepot = null;
         float minDistance = 0f;
         foreach (DepotEntity depot in depots)
         {
-            if (depot.buildingProperties.isBuilt && !depot.IsFull() && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
+            if (depot.buildingProperties.isBuilt && !depot.IsFull(resourceType) && Pathfinding.instance.PathExists(depot.transform.position, position, 0f))
             {
                 float distance = Vector3.Distance(depot.transform.position, position);
                 if (distance < minDistance || nearestDepot == null)
@@ -76,14 +78,13 @@ public class Player : MonoBehaviour {
         return nearestDepot;
     }
 
-    public int GetAvailableResources()
+    public int GetAvailableResources(EResourceType resourceType)
     {
         int count = 0;
         foreach (DepotEntity depot in depots)
-            count += depot.resourceContainer.GetAllResourcesStock();
+            count += depot.resourceContainer.GetCurrentResourceStock(resourceType);
         return count;
     }
-
 
     public void PlaceBuilding(BuildingEntity building)
     {

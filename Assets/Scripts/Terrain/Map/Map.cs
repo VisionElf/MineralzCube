@@ -102,6 +102,12 @@ public class Map : MonoBehaviour {
         GenerateMap();
     }
 
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+            GenerateMap();
+    }
+
     //FUNCTIONS
     public void GenerateMap()
     {
@@ -138,7 +144,7 @@ public class Map : MonoBehaviour {
         yield return null;
         for (int i = 0; i < smoothCount; i++)
         {
-            SmoothMap(smoothThreshold, ECaseType.Rock, ECaseType.Empty);
+            SmoothMap(smoothThreshold);
             yield return null;
         }
 
@@ -163,7 +169,7 @@ public class Map : MonoBehaviour {
         GetComponent<Grid>().CreateGrid();
 
         Other.StopStep("Generating map", loadings[8]);
-
+        
         Case startingCase = startingPoints[randomGenerator.Next(0, startingPoints.Count)];
         GameObject.Find("Player").GetComponent<Player>().CreateStartingUnits(startingCase.position);
         startingPoints.Remove(startingCase);
@@ -205,21 +211,21 @@ public class Map : MonoBehaviour {
             }
         }
     }
-    public void SmoothMap(int threshold, ECaseType type, ECaseType smoothType)
+    public void SmoothMap(int threshold)
     {
         emptyCases.Clear();
         for (int x = 0; x < cases.GetLength(0); x++)
         {
             for (int y = 0; y < cases.GetLength(1); y++)
             {
-                if (cases[x, y].caseType == type || cases[x, y].caseType == smoothType)
-                {
-                    int tmp = GetCountAround(cases[x, y], 1, type, true);
-                    if (tmp > threshold)
-                        cases[x, y].caseType = type;
-                    else if (tmp < threshold)
-                        cases[x, y].caseType = smoothType;
-                }
+                Case currentCase = cases[x, y];
+                KeyValuePair<ECaseType, int> mostTypePair = GetTypeAround(currentCase, 1, false);
+
+                if (mostTypePair.Value > threshold)
+                    cases[x, y].caseType = mostTypePair.Key;
+                else if (mostTypePair.Value < threshold)
+                    cases[x, y].caseType = ECaseType.Empty;
+
                 if (cases[x, y].caseType == ECaseType.Empty)
                     emptyCases.Add(cases[x, y]);
             }
@@ -250,16 +256,17 @@ public class Map : MonoBehaviour {
             for (int y = 0; y < cases.GetLength(1); y++)
             {
                 if (cases[x,y].caseType != ECaseType.Empty)
-                    CreateEntityOnMap(GetEntityFromType(cases[x,y].caseType), cases[x,y].position);
+                    CreateEntityOnMap(GetEntityFromType(cases[x,y].caseType), cases[x,y].position, true);
             }
         }
     }
 
-    public GameObject CreateEntityOnMap(Entity type, Vector3 position)
+    public GameObject CreateEntityOnMap(Entity type, Vector3 position, bool randomHeight)
     {
         GameObject obj = GameObject.Instantiate(type.gameObject);
         obj.transform.position = SnapToGrid(position, obj.GetComponent<Entity>().buildingProperties);
-        obj.GetComponentInChildren<Renderer>().gameObject.transform.position -= new Vector3(0, randomGenerator.Next(0, 100) * 0.25f / 100f, 0f);
+        if (randomHeight)
+            obj.GetComponentInChildren<Renderer>().gameObject.transform.position -= new Vector3(0, randomGenerator.Next(0, 100) * 0.25f / 100f, 0f);
         obj.transform.Rotate(Vector3.up * randomGenerator.Next(0, 4) * 90);
         obj.tag = "Terrain";
         return obj;
@@ -273,7 +280,8 @@ public class Map : MonoBehaviour {
         {
             Case temp = startingPoints[randomGenerator.Next(0, startingPoints.Count)];
             startingPoints.Remove(temp);
-            if (Pathfinding.instance.PathExists(temp.position, startingCase.position, 0f))
+            float distance = Vector3.Distance(startingCase.position, temp.position);
+            if (Pathfinding.instance.PathExists(temp.position, startingCase.position, 1f) && distance > 10f)
             {
                 creepCase = temp;
                 break;
@@ -283,7 +291,7 @@ public class Map : MonoBehaviour {
             print("No creep spawn point found");
         else
         {
-            creepSpawns.Add(CreateEntityOnMap(creepSpawnEntity, creepCase.position).GetComponent<CreepSpawnEntity>());
+            creepSpawns.Add(CreateEntityOnMap(creepSpawnEntity, creepCase.position, false).GetComponent<CreepSpawnEntity>());
         }
     }
     public void StartSpawnCreeps()
@@ -422,12 +430,12 @@ public class Map : MonoBehaviour {
         return list;
     }
 
-    public int GetCountAround(Case c, int radius, ECaseType type, bool borderCount)
+    public int GetCountAround(Case c, int distance, ECaseType type, bool borderCount)
     {
         int count = 0;
-        for (int i = -radius; i <= radius; i++)
+        for (int i = -distance; i <= distance; i++)
         {
-            for (int j = -radius; j <= radius; j++)
+            for (int j = -distance; j <= distance; j++)
             {
                 if (i != 0 || j != 0)
                 {
@@ -445,6 +453,44 @@ public class Map : MonoBehaviour {
         }
         return count;
     }
+    public KeyValuePair<ECaseType, int> GetTypeAround(Case c, int distance, bool borderCount)
+    {
+        Dictionary<ECaseType, int> counts = new Dictionary<ECaseType, int>();
+        for (int i = -distance; i <= distance; i++)
+        {
+            for (int j = -distance; j <= distance; j++)
+            {
+                if (i != 0 || j != 0)
+                {
+                    int x = i + c.x;
+                    int y = j + c.y;
+                    if (InBounds(x, y))
+                    {
+                        ECaseType type = cases[x, y].caseType;
+                        if (counts.ContainsKey(type))
+                            counts[type]++;
+                        else
+                            counts.Add(type, 1);
+                    }
+                    else if (borderCount)
+                    {
+                        if (counts.ContainsKey(ECaseType.Rock))
+                            counts[ECaseType.Rock]++;
+                        else
+                            counts.Add(ECaseType.Rock, 1);
+                    }
+                        
+                }
+            }
+        }
+
+        ECaseType mostType = ECaseType.Empty;
+        foreach (KeyValuePair<ECaseType, int> kp in counts)
+            if (!counts.ContainsKey(mostType) || kp.Value > counts[mostType])
+                mostType = kp.Key;
+        return new KeyValuePair<ECaseType,int>(mostType, counts[mostType]);
+    }
+
     public float GetPercentInCircle(Case center, float radius, ECaseType type)
     {
         int count = 0;

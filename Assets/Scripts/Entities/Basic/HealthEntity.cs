@@ -8,6 +8,7 @@ public class HealthEntity : Entity {
 
     //PUBLIC PROPERTIES
     public float health { get; set; }
+
     float potentialDamage;
 
     public void AddPotentialDamage(float dmg)

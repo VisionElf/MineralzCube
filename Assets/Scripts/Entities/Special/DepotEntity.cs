@@ -8,24 +8,19 @@ public class DepotEntity : Entity {
     public ResourceContainer resourceContainer;
 
     //PROPERTIES
-    void Start()
-    {
-        resourceContainer.Initialize(this);
-    }
-
 
     public void OnResouresChanged()
     {
         basicProperties.owner.OnResourcesChanged();
     }
 
-    public bool IsEmpty()
+    public bool IsEmpty(EResourceType resourceType)
     {
-        return resourceContainer.IsEmpty();
+        return resourceContainer.IsEmpty(resourceType);
     }
-    
-    public bool IsFull()
+
+    public bool IsFull(EResourceType resourceType)
     {
-        return resourceContainer.IsFull();
+        return resourceContainer.IsFull(resourceType);
     }
 }

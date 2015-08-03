@@ -21,115 +21,55 @@ public class WorkerEntity : Entity {
 
     //PROPERTIES
     public MainBaseEntity mainBase { get; set; }
-    DepotEntity currentNearestDepot;
 
     Task currentTask;
 
     //FUNCTIONS
-    void Start()
-    {
-        resourceContainer.Initialize(this);
-    }
-
-    public bool HarvestResource(ResourceEntity resource)
-    {
-        if (!resourceContainer.IsFull() && (resource != null || !resource.Empty()))
-        {
-            if (basicProperties.Reached(resource, harvestRange))
-            {
-                int bestQty = Mathf.Min(harvestQuantity, resource.GetRemainingResources(), resourceContainer.GetEmptyPlace());
-
-                resourceContainer.AddResource(resource.resourceType, bestQty);
-                resource.Harvest(bestQty);
-            }
-            return true;
-        }
-        return false;
-    }
-    public bool BuildBuilding(BuildingEntity building)
-    {
-        if (!resourceContainer.IsEmpty() && (building != null && !building.isBuilt))
-        {
-            if (basicProperties.Reached(building, harvestRange))
-            {
-                int bestQty = Mathf.Min(buildQuantity, building.GetRemainingResources(), resourceContainer.GetAllResourcesStock());
-
-                resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
-                building.Build(bestQty);
-            }
-            return true;
-        }
-        return false;
-    }
     public bool BackToBase()
     {
         return !basicProperties.Reached(mainBase, -mainBase.basicProperties.radius);
     }
-    
-    public bool BringCargo()
+
+    public bool HarvestResource(ResourceEntity resource)
     {
-        if (currentNearestDepot == null)
-            currentNearestDepot = basicProperties.owner.GetNearestDepotNotFull(transform.position);
-
-        if (basicProperties.Reached(currentNearestDepot))
-        {
-            int bestQty = Mathf.Min(resourceContainer.GetAllResourcesStock(), currentNearestDepot.resourceContainer.GetEmptyPlace());
-
-            resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
-            currentNearestDepot.resourceContainer.AddResource(EResourceType.Rock, bestQty);
-            currentNearestDepot = null;
-            return false;
-        }
-        return true;
-    }
-    public bool GatherCargo(BuildingEntity building)
-    {
-        if (currentNearestDepot == null)
-            currentNearestDepot = basicProperties.owner.GetNearestDepotNotEmpty(transform.position);
-
-        if (basicProperties.Reached(currentNearestDepot))
-        {
-            int bestQty = Mathf.Min(building.GetRemainingResources(), resourceContainer.GetEmptyPlace(), currentNearestDepot.resourceContainer.GetResourceStock(EResourceType.Rock).stock);
-
-            currentNearestDepot.resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
-            resourceContainer.AddResource(EResourceType.Rock, bestQty);
-            currentNearestDepot = null;
-            return false;
-        }
-        return true;
-    }
-
-    public bool HarvestResource2(ResourceEntity resource)
-    {
-        int bestQty = Mathf.Min(harvestQuantity, resource.GetRemainingResources(), resourceContainer.GetEmptyPlace());
+        EResourceType resourceType = resource.resourceType;
+        int bestQty = Mathf.Min(harvestQuantity, resource.GetRemainingResources(), resourceContainer.GetEmptyPlace(resourceType));
 
         resourceContainer.AddResource(resource.resourceType, bestQty);
         resource.Harvest(bestQty);
-        return !resourceContainer.IsFull();
+        return !resourceContainer.IsFull(resourceType);
     }
-    public bool BuildBuilding2(BuildingEntity building)
+    public bool BuildBuilding(BuildingEntity building)
     {
-        int bestQty = Mathf.Min(buildQuantity, building.GetRemainingResources(), resourceContainer.GetAllResourcesStock());
+        foreach (ResourceStock stock in resourceContainer.resourcesStocks)
+        {
+            if (!stock.IsEmpty())
+            {
+                EResourceType resourceType = stock.resourceType;
+                int bestQty = Mathf.Min(buildQuantity, building.GetRemainingResources(resourceType), resourceContainer.GetCurrentResourceStock(resourceType));
 
-        resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
-        building.Build(bestQty);
-        return !resourceContainer.IsEmpty();
+                resourceContainer.RemoveResource(resourceType, bestQty);
+                building.Build(bestQty, resourceType);
+                return !resourceContainer.IsEmpty(resourceType) && building.GetRemainingResources(resourceType) > 0;
+            }
+        }
+        return false;
     }
-    public bool DepositResource(DepotEntity depot)
+    public bool DepositResource(DepotEntity depot, EResourceType resourceType)
     {
-        int bestQty = Mathf.Min(depositQuantity, resourceContainer.GetAllResourcesStock(), depot.resourceContainer.GetEmptyPlace());
+        int bestQty = Mathf.Min(depositQuantity, resourceContainer.GetCurrentResourceStock(resourceType), depot.resourceContainer.GetEmptyPlace(resourceType));
 
-        resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
-        depot.resourceContainer.AddResource(EResourceType.Rock, bestQty);
-        return !resourceContainer.IsEmpty() && !depot.IsFull();
+        resourceContainer.RemoveResource(resourceType, bestQty);
+        depot.resourceContainer.AddResource(resourceType, bestQty);
+        return !resourceContainer.IsEmpty(resourceType) && !depot.IsFull(resourceType);
     }
-    public bool WithdrawResource(DepotEntity depot)
+    public bool WithdrawResource(DepotEntity depot, EResourceType resourceType)
     {
-        int bestQty = Mathf.Min(depositQuantity, resourceContainer.GetEmptyPlace(), depot.resourceContainer.GetResourceStock(EResourceType.Rock).stock);
+        int bestQty = Mathf.Min(depositQuantity, resourceContainer.GetEmptyPlace(resourceType), depot.resourceContainer.GetCurrentResourceStock(resourceType));
 
-        depot.resourceContainer.RemoveResource(EResourceType.Rock, bestQty);
-        resourceContainer.AddResource(EResourceType.Rock, bestQty);
-        return !resourceContainer.IsFull() && !depot.IsEmpty();
+        depot.resourceContainer.RemoveResource(resourceType, bestQty);
+        resourceContainer.AddResource(resourceType, bestQty);
+        return !resourceContainer.IsFull(resourceType) && !depot.IsEmpty(resourceType);
     }
 
 
@@ -148,7 +88,6 @@ public class WorkerEntity : Entity {
     public void AssignTask(Task task)
     {
         StopAllCoroutines();
-        currentNearestDepot = null;
         currentTask = task;
         if (currentTask != null && basicProperties.CanReach(task.GetTarget()))
         {
@@ -175,8 +114,9 @@ public class WorkerEntity : Entity {
 
     IEnumerator Harvest()
     {
+        EResourceType currentResourceHarvested = currentTask.GetTarget().resourceProperties.resourceType;
         // HARVEST CONDITION
-        while (!currentTask.Done() && !currentTask.PauseCondition(this))
+        while (!currentTask.Done() && !currentTask.PauseCondition())
         {
             //REACH
             while (!basicProperties.Reached(currentTask.GetTarget(), harvestRange))
@@ -188,14 +128,14 @@ public class WorkerEntity : Entity {
             // EMPTY CONTAINER
             if (!resourceContainer.IsEmpty())
             {
-                DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(transform.position);
+                DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(transform.position, currentResourceHarvested);
                 if (depot != null)
                 {
                     //REACH
                     while (!basicProperties.Reached(depot))
                         yield return null;
                     //DEPOSIT
-                    while (DepositResource(depot))
+                    while (DepositResource(depot, currentResourceHarvested))
                         yield return new WaitForSeconds(depositSpeed);
                 }
             }
@@ -207,73 +147,78 @@ public class WorkerEntity : Entity {
         while (!basicProperties.Reached(mainBase, -mainBase.basicProperties.radius))
             yield return null;
     }
+
     IEnumerator Build()
     {
         // HARVEST CONDITION
-        while (!currentTask.Done() && !currentTask.PauseCondition(this))
+        while (currentTask != null && !currentTask.Done() && !currentTask.PauseCondition())
         {
+            EResourceType currentBuildResource = currentTask.GetTarget().buildingProperties.GetResourceCostType();
+            if (currentBuildResource == EResourceType.None)
+                print("[ERROR] ON A MERDER QUELQUE PART");
+
             //FILL CONTAINER
-            DepotEntity depot = basicProperties.owner.GetNearestDepotNotEmpty(transform.position);
+            DepotEntity depot = basicProperties.owner.GetNearestDepotNotEmpty(transform.position, currentBuildResource);
             if (depot != null)
             {
                 //REACH
                 while (!basicProperties.Reached(depot))
                     yield return null;
                 //DEPOSIT
-                while (WithdrawResource(depot))
+                while (WithdrawResource(depot, currentBuildResource))
                     yield return new WaitForSeconds(depositSpeed);
             }
 
             if (!resourceContainer.IsEmpty())
             {
                 //REACH
-                while (!basicProperties.Reached(currentTask.GetTarget(), buildRange))
+                while (currentTask != null && !basicProperties.Reached(currentTask.GetTarget(), buildRange))
                     yield return null;
                 //HARVEST RESOURCE
-                while (!currentTask.Done() && currentTask.DoTask(this))
+                while (currentTask != null && !currentTask.Done() && currentTask.DoTask(this))
                     yield return new WaitForSeconds(buildSpeed);
+            }
+
+            if (!resourceContainer.IsEmpty())
+            {
+                // EMPTY CONTAINER
+                EResourceType depositResourceType = resourceContainer.GetCurrentResourceType();
+                DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(transform.position, depositResourceType);
+
+                if (depot2 != null)
+                {
+                    //REACH
+                    while (!basicProperties.Reached(depot2))
+                        yield return null;
+                    //DEPOSIT
+                    while (DepositResource(depot2, depositResourceType))
+                        yield return new WaitForSeconds(depositSpeed);
+                }
             }
         }
 
         OnTaskDone();
 
-        //IF THERE IS STILL RESOURCES IN CARGO
+        //EMPTY RESOURCE CONTAINER
         if (!resourceContainer.IsEmpty())
         {
             // EMPTY CONTAINER
-            DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(transform.position);
+            EResourceType depositResourceType = resourceContainer.GetCurrentResourceType();
+            DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(transform.position, depositResourceType);
 
-            if (depot != null)
+            if (depot2 != null)
             {
                 //REACH
-                while (!basicProperties.Reached(depot))
+                while (!basicProperties.Reached(depot2))
                     yield return null;
                 //DEPOSIT
-                while (DepositResource(depot))
+                while (DepositResource(depot2, depositResourceType))
                     yield return new WaitForSeconds(depositSpeed);
             }
         }
 
         //WHEN OVER RETURN TO BASE
         while (mainBase != null && !basicProperties.Reached(mainBase, -mainBase.basicProperties.radius))
-            yield return null;
-    }
-
-    IEnumerator Task()
-    {
-        while (!currentTask.Done())
-        {
-            while (!basicProperties.Reached(currentTask.GetTarget()))
-                yield return null;
-            while (!currentTask.PauseCondition(this) && currentTask.DoTask(this))
-                yield return new WaitForSeconds(harvestSpeed);
-        }
-
-        OnTaskDone();
-
-        while (!resourceContainer.IsEmpty() && BringCargo())
-            yield return null;
-        while (BackToBase())
             yield return null;
     }
 }

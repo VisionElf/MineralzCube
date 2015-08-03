@@ -19,11 +19,7 @@ public class BuildTask : Task {
 
     public override bool DoTask(WorkerEntity worker)
     {
-        return worker.BuildBuilding2(building);
-        /*if (!worker.BuildBuilding(building))
-            if (!worker.GatherCargo(building))
-                return !building.isBuilt;
-        return true;*/
+        return worker.BuildBuilding(building);
     }
 
     public override bool Done()
@@ -31,10 +27,28 @@ public class BuildTask : Task {
         return building.isBuilt;
     }
 
+    public override bool PauseCondition()
+    {
+        int workerPaused = 0;
+        foreach (WorkerEntity worker in workersList)
+            if (PauseCondition(worker))
+                workerPaused++;
+        paused = (workerPaused == workersList.Count);
+        return paused;
+    }
+
     public override bool PauseCondition(WorkerEntity worker)
     {
-        paused = worker.resourceContainer.IsEmpty() && worker.basicProperties.owner.GetAvailableResources() == 0;
-        return paused;
+        int count = 0;
+        bool empty = true;
+        foreach (ResourceCost cost in building.resourcesCost)
+            if (!cost.IsFull())
+            {
+                count += worker.basicProperties.owner.GetAvailableResources(cost.resourceType);
+                empty = empty && worker.resourceContainer.IsEmpty(cost.resourceType);
+            }
+
+        return empty && count == 0;
     }
 
     public override void OnAdd()

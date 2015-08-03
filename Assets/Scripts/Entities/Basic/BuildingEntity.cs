@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BuildingEntity : Entity {
 
     //UNITY PROPERTIES
-    public int cost;
+    public List<ResourceCost> resourcesCost;
     public int caseSizeX;
     public int caseSizeY;
 
@@ -14,7 +15,6 @@ public class BuildingEntity : Entity {
 
     //PROPERTIES
     public bool isBuilt { get; set; }
-    int buildResources;
 
     float defaultY;
 
@@ -25,22 +25,25 @@ public class BuildingEntity : Entity {
         DisableCollider();
         model.transform.localPosition = new Vector3(0, -sizeY, 0);
         isBuilt = false;
-        buildResources = 0;
+        foreach (ResourceCost resourceCost in resourcesCost)
+            resourceCost.buildResources = 0;
+
         if (HaveHealth())
             healthProperties.health = 1;
     }
 
-    public int Build(int resources)
+    public int Build(int resources, EResourceType resourceType)
     {
-        if (resources > GetRemainingResources())
-            resources = GetRemainingResources();
-        buildResources += resources;
+        ResourceCost resourceCost = GetResourceCost(resourceType);
+        if (resources > GetRemainingResources(resourceType))
+            resources = GetRemainingResources(resourceType);
+        resourceCost.buildResources += resources;
 
-        if (!PathMapApplied() && buildResources > 0)
+        if (!PathMapApplied() && resourceCost.buildResources > 0)
             ApplyPathMap();
 
         if (HaveHealth())
-            healthProperties.AddPercentHealth((float)resources / cost);
+            healthProperties.AddPercentHealth((float)resources / resourceCost.cost);
         RefreshBuilding();
 
         if (GetBuildingProgress() >= 1)
@@ -69,12 +72,35 @@ public class BuildingEntity : Entity {
 
     public float GetBuildingProgress()
     {
-        return (float)buildResources / cost;
+        int count = 0;
+        int max = 0;
+        foreach (ResourceCost resourceCost in resourcesCost)
+        {
+            count += resourceCost.buildResources;
+            max += resourceCost.cost;
+        }
+
+        return (float)count / max;
     }
 
-    public int GetRemainingResources()
+    public EResourceType GetResourceCostType()
     {
-        return cost - buildResources;
+        foreach (ResourceCost cost in resourcesCost)
+            if (!cost.IsFull())
+                return cost.resourceType;
+        return EResourceType.None;
+    }
+    public int GetRemainingResources(EResourceType resourceType)
+    {
+        ResourceCost resourceCost = GetResourceCost(resourceType);
+        return resourceCost.cost - resourceCost.buildResources;
+    }
+    public ResourceCost GetResourceCost(EResourceType resourceType)
+    {
+        foreach (ResourceCost resource in resourcesCost)
+            if (resource.resourceType == resourceType)
+                return resource;
+        return null;
     }
 
 }

@@ -202,8 +202,8 @@ public class Pathfinding : MonoBehaviour
                 result.Add(end);
             }
             
-            /*
-            if (radius > 0)
+            
+            /*if (radius > 0)
                 result = CorrectPathForRadius(result, radius);*/
         }
         if (!Grid.colorLocked)

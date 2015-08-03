@@ -2,33 +2,21 @@
 using System.Collections;
 using System.Collections.Generic;
 
-[System.Serializable]
-public class ResourceContainer {
+//[System.Serializable]
+public class ResourceContainer : MonoBehaviour {
 
     //UNTIY PROPERTY
-    public bool shareResourcesStocks;
-    public int maxTotalStock;
     public List<ResourceStock> resourcesStocks;
 
 
-    public int dummyListStart;
-    public int dummyListEnd;
-
-    //PROPERTIES
+    //PROPERTY
     Entity parent;
-    List<Dummy> dummyList;
-    float dummyTotalSize;
 
     //FUNCTIONS
-    public ResourceContainer()
+    void Start()
     {
-        dummyList = new List<Dummy>();
-    }
-
-    public void Initialize(Entity _parent)
-    {
-        parent = _parent;
         CreateDummyList();
+        parent = transform.root.GetComponent<Entity>();
     }
 
     public int AddResource(EResourceType resourceType, int quantity)
@@ -38,15 +26,10 @@ public class ResourceContainer {
         {
             int total = resourceStock.maxStock;
             int current = resourceStock.stock;
-            if (shareResourcesStocks)
-            {
-                current = GetAllResourcesStock();
-                total = maxTotalStock;
-            }
             if (quantity + current > total)
                 quantity = total - current;
             resourceStock.stock += quantity;
-            RefreshDummyList();
+            resourceStock.RefreshDummyList();
             if (parent != null && parent.HaveDepot())
                 parent.depotProperties.OnResouresChanged();
             return quantity;
@@ -55,14 +38,6 @@ public class ResourceContainer {
             return 0;
     }
 
-    public int RemoveResource(EResourceType resourceType)
-    {
-        ResourceStock resourceStock = GetResourceStock(resourceType);
-        if (resourceStock != null)
-            return RemoveResource(resourceStock.resourceType, resourceStock.stock);
-        else
-            return 0;
-    }
     public int RemoveResource(EResourceType resourceType, int quantity)
     {
         ResourceStock resourceStock = GetResourceStock(resourceType);
@@ -72,9 +47,9 @@ public class ResourceContainer {
             if (quantity > current)
                 quantity = current;
             resourceStock.stock -= quantity;
-            RefreshDummyList();
-            if (parent.HaveDepot())
-                parent.depotProperties.OnResouresChanged();
+            resourceStock.RefreshDummyList();
+            /*if (parent.HaveDepot())
+                parent.depotProperties.OnResouresChanged();*/
             return quantity;
         }
         else
@@ -88,74 +63,70 @@ public class ResourceContainer {
                 return r;
         return null;
     }
-    public int GetAllResourcesStock()
+
+    public EResourceType GetCurrentResourceType()
     {
-        int count = 0;
-        foreach (ResourceStock r in resourcesStocks)
-            count += r.stock;
-        return count;
+        foreach (ResourceStock stock in resourcesStocks)
+            if (!stock.IsEmpty())
+                return stock.resourceType;
+        return EResourceType.None;
     }
-    public int GetTotalStock()
+    public int GetCurrentResourceStock(EResourceType resourceType)
     {
-        if (shareResourcesStocks)
-            return maxTotalStock;
-        else
-        {
-            int total = 0;
-            foreach (ResourceStock r in resourcesStocks)
-                total += r.maxStock;
-            return total;
-        }
+        ResourceStock resource = GetResourceStock(resourceType);
+        if (resource != null)
+            return resource.stock;
+        return 0;
     }
 
-    public int GetEmptyPlace()
+    public int GetMaxStock(EResourceType resourceType)
     {
-        return GetTotalStock() - GetAllResourcesStock();
+        ResourceStock resource = GetResourceStock(resourceType);
+        if (resource != null)
+            return resource.maxStock;
+        return 0;
     }
 
-    public bool IsFull()
+    public int GetEmptyPlace(EResourceType resourceType)
     {
-        return GetAllResourcesStock() == GetTotalStock();
+        ResourceStock resource = GetResourceStock(resourceType);
+        return resource.maxStock - resource.stock;
     }
+
+    public bool IsFull(EResourceType resourceType)
+    {
+        ResourceStock resource = GetResourceStock(resourceType);
+        if (resource != null)
+            return resource.stock == resource.maxStock;
+        return true;
+    }
+
     public bool IsEmpty()
     {
-        return GetAllResourcesStock() == 0;
+        int count = 0;
+        foreach (ResourceStock stock in resourcesStocks)
+            count += stock.stock;
+        return count == 0;
     }
-
-    public float GetPercentStock()
+    public bool IsEmpty(EResourceType resourceType)
     {
-        return (float)GetAllResourcesStock() / GetTotalStock();
+        ResourceStock resource = GetResourceStock(resourceType);
+        if (resource != null)
+            return resource.stock == 0;
+        return true;
     }
 
-
-    //DUMMY FUNCTIONS
-    public void CreateDummyList()
+    public float GetPercentStock(EResourceType resourceType)
     {
-        dummyList = new List<Dummy>();
-        for (int i = dummyListStart; i <= dummyListEnd; i++)
-        {
-            GameObject obj = Static.FindChild(parent.gameObject, "R" + i);
-            if (obj != null)
-            {
-                Dummy dummy;
-                if ((dummy = obj.GetComponent<Dummy>()) != null)
-                    dummyList.Add(dummy);
-            }
-        }
-        foreach (Dummy d in dummyList)
-            dummyTotalSize += d.defaultScale.y * d.defaultScale.x * d.defaultScale.y;
-        RefreshDummyList();
+        ResourceStock resource = GetResourceStock(resourceType);
+        if (resource != null)
+            return (float)resource.stock / resource.maxStock;
+        return 0f;
     }
-    public void RefreshDummyList()
+
+    void CreateDummyList()
     {
-        float percent = GetPercentStock();
-        foreach (Dummy d in dummyList)
-        {
-            float dp = (d.defaultScale.y * d.defaultScale.x * d.defaultScale.y) / dummyTotalSize;
-
-            d.ScaleY(Mathf.Min(percent / dp, 1));
-            percent = Mathf.Max(percent - dp, 0);
-        }
+        foreach (ResourceStock stock in resourcesStocks)
+            stock.CreateDummyList();
     }
-
 }

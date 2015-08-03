@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class Task {
 
     int maxAssign;
-    List<Entity> workersList;
+    protected List<Entity> workersList;
     protected bool paused;
 
     public Task(int _maxAssign)
@@ -17,6 +17,7 @@ public class Task {
     public void AssignWorker(Entity worker)
     {
         workersList.Add(worker);
+        paused = false;
         OnUpdateAssign();
     }
     public void UnassignWorker(Entity worker)
@@ -45,6 +46,7 @@ public class Task {
 
     public void Pause() { paused = true; }
     public bool Paused() { return paused; }
+    public virtual bool PauseCondition() { return false; }
     public virtual bool PauseCondition(WorkerEntity worker) { return false; }
 
     public virtual bool Done() { return false; }
