@@ -21,6 +21,29 @@ public class Player : MonoBehaviour {
 
     BuildingEntity currentBuild;
     Dummy previewBuild;
+    bool canBuild;
+
+    void Start()
+    {
+        InitButtonsIcons();
+    }
+
+    void InitButtonsIcons()
+    {
+        buttonsRect = new List<Rect>();
+        int iconSize = 64;
+        int interval = 5;
+        int totalDistance = (iconSize * buildList.Count) + (interval * (buildList.Count - 1));
+        int startX = totalDistance / 2;
+
+        Vector3 position = new Vector3(Screen.width / 2 - startX, Screen.height - iconSize);
+        for (int i = 0; i < buildList.Count; i++)
+        {
+            Rect rect = new Rect(position.x, position.y, iconSize, iconSize);
+            buttonsRect.Add(rect);
+            position.x += iconSize + interval;
+        }
+    }
 
     public void CreateStartingUnits(Vector3 position)
     {
@@ -117,12 +140,10 @@ public class Player : MonoBehaviour {
         }
     }
 
-
     IEnumerator UpdateBuild()
     {
         Vector3 mousePosition = new Vector3();
         RaycastHit hit;
-        bool canBuild = true;
 
         while (currentBuild != null)
         {
@@ -130,32 +151,16 @@ public class Player : MonoBehaviour {
                 mousePosition = hit.point;
             previewBuild.transform.position = Map.instance.SnapToGrid(mousePosition, currentBuild);
 
-            canBuild = true;
-            previewBuild.ResetColor();
-            Vector3 pos = previewBuild.transform.position - new Vector3(currentBuild.caseSizeX, 0, currentBuild.caseSizeY) * Grid.instance.nodeSize / 4 + Vector3.up * 10f;
-            for (int i = 0; i < currentBuild.caseSizeX; i++)
-            {
-                for (int j = 0; j < currentBuild.caseSizeY; j++)
-                {
-                    if (Physics.Raycast(pos + new Vector3(i, 0, j) * Grid.instance.nodeSize, Vector3.down, out hit, 20f, Grid.instance.mask))
-                    {
-                        canBuild = false;
-                        previewBuild.SetColor(1f, 0f, 0f);                       
-                        break;
-                    }
-                }
-                if (!canBuild)
-                    break;
-            }
-            
-            if (Input.GetMouseButtonDown(0) && canBuild)
-                break;
-            else if (Input.GetMouseButtonDown(1))
+            canBuild = currentBuild.CanBeBuildAtPosition(previewBuild.transform.position);
+            if (!canBuild)
+                previewBuild.SetColor(1f, 0f, 0f);
+            else
+                previewBuild.ResetColor();
+
+            if (Input.GetMouseButtonDown(1))
                 currentBuild = null;
             yield return null;
         }
-
-        StartBuild();
         if (previewBuild != null)
             previewBuild.DestroyDummy();
         previewBuild = null;
@@ -168,8 +173,26 @@ public class Player : MonoBehaviour {
 
     void UpdateMouseButtons()
     {
-        if (Input.GetMouseButton(1))
+        if (Input.GetMouseButtonDown(0))
         {
+            if (previewBuild != null)
+            {
+                StartBuild();
+            }
+            else
+            {
+                for (int i = 0; i < buttonsRect.Count; i++)
+                    if (buttonsRect[i].Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
+                    {
+                        PlaceBuilding(buildList[i]);
+                        break;
+                    }
+            }
+        }
+
+        else if (Input.GetMouseButton(1))
+        {
+
             RaycastHit hitInfo;
             if (Physics.Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hitInfo))
             {
@@ -222,6 +245,7 @@ public class Player : MonoBehaviour {
         avgFps /= fpsList.Count;
     }
 
+    List<Rect> buttonsRect;
     void OnGUI()
     {
         if (Other.gameStarted)
@@ -231,17 +255,23 @@ public class Player : MonoBehaviour {
 
             if (Other.showDebug)
             {
-                int textWidth = 500;
-                GUI.color = Color.black;
+                Rect debugTextRect = new Rect(0, 0, 300, 100);
+
+                GUI.color = new Color(0, 0, 0, 0.8f);
+                GUI.DrawTexture(debugTextRect, Static.basic_texture);
+
                 int y = 0;
-                GUI.Label(new Rect(0, y, textWidth, 100), "FPS: " + Math.Round(fpsList[fpsList.Count - 1], 2));
+                GUI.color = Color.white;
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "FPS: " + Math.Round(fpsList[fpsList.Count - 1], 2));
                 y += 20;
-                GUI.Label(new Rect(0, y, textWidth, 100), "Average FPS: " + Math.Round(avgFps, 2));
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Average FPS: " + Math.Round(avgFps, 2));
                 y += 20;
-                GUI.Label(new Rect(0, y, textWidth, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount +
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount +
                     " (" + Pathfinding.instance.cacheCount + " cached), avg= " + Mathf.Round(Pathfinding.instance.GetAverageTime()) + "ms");
                 y += 20;
-                GUI.Label(new Rect(0, y, textWidth, 100), "Task Count: " + mainBase.GetTaskCount());
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "PathRequests Count: " + Pathfinding.instance.requestsPathCount + " (" + Pathfinding.requestsPathTotal + ")");
+                y += 20;
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Task Count: " + mainBase.GetTaskCount());
                 y += 20;
 
                 int size = 1;
@@ -261,18 +291,12 @@ public class Player : MonoBehaviour {
 
     void DrawInterface()
     {
-        int iconSize = 64;
-        int interval = 5;
-        int totalDistance = (iconSize * buildList.Count) + (interval * (buildList.Count - 1));
-        int startX = totalDistance / 2;
-
-        Vector3 position = new Vector3(Screen.width / 2 - startX, Screen.height - iconSize);
         for (int i = 0; i < buildList.Count; i++)
         {
             GUI.color = Color.white;
             if (currentBuild == buildList[i])
                 GUI.color = Color.green;
-            Rect rect = new Rect(position.x, position.y, iconSize, iconSize);
+            Rect rect = buttonsRect[i];
             GUI.DrawTexture(rect, buildList[i].buildingIcon);
 
             GUIStyle style = new GUIStyle();
@@ -282,15 +306,13 @@ public class Player : MonoBehaviour {
 
             GUIContent content = new GUIContent(buildList[i].name);
             Vector3 textSize = style.CalcSize(content);
-            Rect textRect = new Rect(rect.x + (iconSize - textSize.x)  / 2, rect.y + iconSize - textSize.y, rect.width, rect.height);
+            Rect textRect = new Rect(rect.x + (rect.width - textSize.x) / 2, rect.y + rect.width - textSize.y, rect.width, rect.height);
             GUI.Label(textRect, content, style);
 
             GUIContent content2 = new GUIContent(buildShortcuts[i].ToString());
             //Vector3 textSize2 = style.CalcSize(content2);
             Rect textRect2 = new Rect(rect.x, rect.y, rect.width, rect.height);
             GUI.Label(textRect2, content2, style);
-
-            position.x += iconSize + interval;
         }
     }
 

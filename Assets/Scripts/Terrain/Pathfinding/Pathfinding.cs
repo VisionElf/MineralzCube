@@ -19,6 +19,11 @@ public class Pathfinding : MonoBehaviour
     static public Pathfinding instance;
     public int callCount;
     public int cacheCallCount;
+    public int requestsPathCount
+    {
+        get { return pathRequests.Count; }
+    }
+    static public int requestsPathTotal;
 
     public bool useCache;
     public bool useEndPrecisePosition;
@@ -83,6 +88,7 @@ public class Pathfinding : MonoBehaviour
 
     static public void RequestPath(PathfindingParameters parameters, Action<PathfindingResult> callback)
     {
+        requestsPathTotal++;
         pathRequests.Enqueue(new PathfindingRequest(parameters, callback));
         if (!pathRequestActive)
         {

@@ -85,6 +85,16 @@ public class BuildingEntity : Entity {
         return (float)count / max;
     }
 
+    public bool CanBeBuildAtPosition(Vector3 position)
+    {
+        Vector3 pos = position - new Vector3(caseSizeX, 0, caseSizeY) * Grid.instance.nodeSize / 4 + Vector3.up * 10f;
+        for (int i = 0; i < caseSizeX; i++)
+            for (int j = 0; j < caseSizeY; j++)
+                if (Physics.Raycast(pos + new Vector3(i, 0, j) * Grid.instance.nodeSize, Vector3.down, 20f, Grid.instance.mask))
+                    return false;
+        return true;
+    }
+
     public EResourceType GetResourceCostType()
     {
         foreach (ResourceCost cost in resourcesCost)

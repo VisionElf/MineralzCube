@@ -70,6 +70,8 @@ public class BasicEntity : Entity {
                 movableProperties.MoveTowards(destination);
             return false;
         }
+        else
+            movableProperties.StopMove();
         return distance <= distanceRange;
     }
 
