@@ -281,7 +281,8 @@ public class Map : MonoBehaviour {
             Case temp = startingPoints[randomGenerator.Next(0, startingPoints.Count)];
             startingPoints.Remove(temp);
             float distance = Vector3.Distance(startingCase.position, temp.position);
-            if (Pathfinding.instance.PathExists(temp.position, startingCase.position) && distance > 10f)
+            //if (Pathfinding.instance.PathExists(temp.position, startingCase.position) && distance > 10f)
+            if (Pathfinding.instance.PathExists(new PathfindingParameters(temp.position, startingCase.position) { radius = 0.5f } ) && distance > 10f)
             {
                 creepCase = temp;
                 break;

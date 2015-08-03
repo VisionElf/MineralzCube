@@ -55,6 +55,13 @@ public class MovableEntity : Entity {
                         return;
                     }
                     DirectMoveTowards(currentWaypoint);
+
+                    /*if (waypoints.Count > 1)
+                    {
+                        Collider[] hits = Physics.OverlapSphere(transform.position, basicProperties.radius - 0.1f, Grid.instance.mask);
+                        foreach (Collider hit in hits)
+                            transform.position += (transform.position - hit.ClosestPointOnBounds(transform.position)).normalized * basicProperties.radius;
+                    }*/
                 }
             }
         }

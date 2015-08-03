@@ -114,6 +114,10 @@ public class Pathfinding : MonoBehaviour
     {
         return FindPath(new PathfindingParameters(start, end) { onlyCheckExists = true }).path.Count > 0;
     }
+    public bool PathExists(PathfindingParameters parameters)
+    {
+        return FindPath(parameters).path.Count > 0;
+    }
 
     PathfindingResult FindPath(PathfindingParameters parameters)
     {
@@ -213,35 +217,34 @@ public class Pathfinding : MonoBehaviour
         }
 
         List<Vector3> resultPath = new List<Vector3>();
-        if (path.Count > 0 && !parameters.onlyCheckExists)
-        {
-            if (displayPathfinding)
-                foreach (Node n in path)
-                    n.SetColor(new Color(0f, 0.4f, 0f));
-
-            if (useBestSmooth)
-                path = BestSmooth(path, startObstacle, endObstacle);
-
-            if (displayPathfinding)
-                foreach (Node n in path)
-                    n.SetColor(Color.green);
-        }
-
         if (path.Count > 0)
         {
             resultPath = NodeListToWaypoints(path);
 
-            if (useEndPrecisePosition)
+            if (!parameters.onlyCheckExists)
             {
-                if (resultPath.Count > 0)
-                    resultPath.RemoveAt(resultPath.Count - 1);
-                resultPath.Add(parameters.end);
+                if (displayPathfinding)
+                    foreach (Node n in path)
+                        n.SetColor(new Color(0f, 0.4f, 0f));
+
+                /*if (parameters.radius > 0)
+                    resultPath = CorrectPathForRadius(resultPath, parameters.radius);*/
+                if (useBestSmooth)
+                    resultPath = BestSmoothVector(resultPath, startObstacle, endObstacle);
+
+                if (displayPathfinding)
+                    foreach (Node n in path)
+                        n.SetColor(Color.green);
+
+                if (useEndPrecisePosition)
+                {
+                    if (resultPath.Count > 0)
+                        resultPath.RemoveAt(resultPath.Count - 1);
+                    resultPath.Add(parameters.end);
+                }
             }
-            
-            
-            /*if (radius > 0)
-                result = CorrectPathForRadius(result, radius);*/
         }
+
         if (!Grid.colorLocked)
             showVector = resultPath;
 
@@ -275,7 +278,7 @@ public class Pathfinding : MonoBehaviour
         path.Reverse();
         return path;
     }
-
+    
     public List<Vector3> NodeListToWaypoints(List<Node> path)
     {
         List<Vector3> waypoints = new List<Vector3>();
@@ -284,6 +287,37 @@ public class Pathfinding : MonoBehaviour
         return waypoints;
     }
 
+    public List<Vector3> BestSmoothVector(List<Vector3> path, Collider startCol, Collider endCol)
+    {
+        List<Vector3> list = new List<Vector3>();
+        Vector3 lastPos = path[0];
+        int lastIndex = 0;
+        Vector3 endPos = path[path.Count - 1];
+
+        Vector3 bestPos = lastPos;
+        while (lastPos != endPos)
+        {
+            bestPos = Vector3.zero;
+            for (int i = lastIndex + 1; i < path.Count; i++)
+            {
+                Vector3 pos = path[i];
+                RaycastHit[] hits = Physics.RaycastAll(lastPos + Vector3.up * 0.5f, (pos - lastPos).normalized, Vector3.Distance(pos, lastPos), grid.mask);
+                if (hits.Length == 0 || (grid.cornerCutting && Vector3.Distance(pos, lastPos) <= Mathf.Sqrt((grid.nodeSize * grid.nodeSize) * 2)) || HitContainsOnlyCollider(hits, startCol) || HitContainsOnlyCollider(hits, endCol))
+                {
+                    bestPos = pos;
+                    lastIndex = i;
+                }
+            }
+            if (bestPos == Vector3.zero)
+            {
+                print("[ERROR] BestSmoothVector Path not found");
+                return list;
+            }
+            list.Add(bestPos);
+            lastPos = bestPos;
+        }
+        return list;
+    }
     public List<Node> BestSmooth(List<Node> path, Collider startCol, Collider endCol)
     {
         List<Node> list = new List<Node>();
@@ -345,9 +379,12 @@ public class Pathfinding : MonoBehaviour
         foreach (Vector3 pos in path)
         {
             Vector3 newPos = pos;
-            RaycastHit hit;
-            if (Physics.SphereCast(newPos, radius, Vector3.right, out hit, radius, grid.mask))
-                newPos -= (hit.point - newPos).normalized * radius;
+            foreach (Collider collider in Physics.OverlapSphere(pos, radius, grid.mask))
+            {
+                Vector3 point = collider.transform.position;
+                showPoints.Add(point);
+                newPos += (pos - point).normalized * radius;
+            }
             correctPath.Add(newPos);
         }
         return correctPath;
