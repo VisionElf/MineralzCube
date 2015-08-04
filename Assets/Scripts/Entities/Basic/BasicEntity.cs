@@ -8,6 +8,8 @@ public class BasicEntity : Entity {
     public float radius;
 
     public Model model;
+    public Texture buildingIcon;
+    public string displayName;
 
     //PROPERTIES
     Player owner;

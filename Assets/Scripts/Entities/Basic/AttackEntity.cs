@@ -27,7 +27,10 @@ public class AttackEntity : Entity {
         targetEntity = null;
         mainTargetEntity = entity.healthProperties;
         if (!Pathfinding.instance.PathExists(transform.position, entity.transform.position))
+        {
+            print("attackto request");
             Pathfinding.RequestPath(new PathfindingParameters(transform.position, entity.transform.position) { ignoreStructure = true }, OnPathFound);
+        }
         else
         {
             targetEntity = mainTargetEntity;

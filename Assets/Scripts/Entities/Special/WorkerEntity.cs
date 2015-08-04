@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class WorkerEntity : Entity {
 
@@ -12,9 +13,7 @@ public class WorkerEntity : Entity {
     public int buildQuantity;
 
     //HARVEST
-    public float harvestSpeed;
-    public int harvestQuantity;
-    public float harvestRange;
+    public List<HarvestProperties> harvestProperties;
 
     public float depositSpeed;
     public int depositQuantity;
@@ -33,7 +32,7 @@ public class WorkerEntity : Entity {
     public bool HarvestResource(ResourceEntity resource)
     {
         EResourceType resourceType = resource.resourceType;
-        int bestQty = Mathf.Min(harvestQuantity, resource.GetRemainingResources(), resourceContainer.GetEmptyPlace(resourceType));
+        int bestQty = Mathf.Min(GetResourceHarvestProp(resourceType).harvestQuantity, resource.GetRemainingResources(), resourceContainer.GetEmptyPlace(resourceType));
 
         resourceContainer.AddResource(resource.resourceType, bestQty);
         resource.Harvest(bestQty);
@@ -112,6 +111,14 @@ public class WorkerEntity : Entity {
         RequestTask();
     }
 
+    public HarvestProperties GetResourceHarvestProp(EResourceType resourceType)
+    {
+        foreach (HarvestProperties prop in harvestProperties)
+            if (prop.resourceType == resourceType)
+                return prop;
+        return null;
+    }
+
     IEnumerator Harvest()
     {
         EResourceType currentResourceHarvested = currentTask.GetTarget().resourceProperties.resourceType;
@@ -119,11 +126,11 @@ public class WorkerEntity : Entity {
         while (!currentTask.Done() && !currentTask.PauseCondition())
         {
             //REACH
-            while (!basicProperties.Reached(currentTask.GetTarget(), harvestRange))
+            while (!basicProperties.Reached(currentTask.GetTarget(), GetResourceHarvestProp(currentResourceHarvested).harvestRange))
                 yield return null;
             //HARVEST RESOURCE
             while (!currentTask.Done() && currentTask.DoTask(this))
-                yield return new WaitForSeconds(harvestSpeed);
+                yield return new WaitForSeconds(GetResourceHarvestProp(currentResourceHarvested).harvestSpeed);
 
             // EMPTY CONTAINER
             if (!resourceContainer.IsEmpty())
@@ -221,4 +228,13 @@ public class WorkerEntity : Entity {
         while (mainBase != null && !basicProperties.Reached(mainBase, -mainBase.basicProperties.radius))
             yield return null;
     }
+}
+
+[System.Serializable]
+public class HarvestProperties
+{
+    public EResourceType resourceType;
+    public int harvestQuantity;
+    public float harvestSpeed;
+    public float harvestRange;
 }

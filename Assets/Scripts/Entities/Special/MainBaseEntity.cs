@@ -8,6 +8,9 @@ public class MainBaseEntity : Entity {
     public int maxWorkersCount;
     public int startingWorkersCount;
     public WorkerEntity workerType;
+    public List<Entity> unitTrainedList;
+
+    public Dummy openClosedPanel;
 
     //PROPERTIES
     List<WorkerEntity> workerList;
@@ -31,6 +34,7 @@ public class MainBaseEntity : Entity {
             worker.mainBase = this;
             workerList.Add(worker);
             worker.RequestTask();
+            RefreshOpenClosedPanel();
         }
     }
 
@@ -51,6 +55,7 @@ public class MainBaseEntity : Entity {
             task.OnRemove();
             taskQueue.Remove(task);
         }
+        RefreshOpenClosedPanel();
     }
     public Task GetNextTask(WorkerEntity worker)
     {
@@ -63,6 +68,7 @@ public class MainBaseEntity : Entity {
                 return GetNextTask(worker);
             }
         }
+        RefreshOpenClosedPanel();
         return temp;
     }
 
@@ -71,11 +77,27 @@ public class MainBaseEntity : Entity {
         foreach (WorkerEntity worker in workerList)
             if (!worker.IsWorking())
                 worker.RequestTask();
+        RefreshOpenClosedPanel();
     }
 
     public int GetTaskCount()
     {
         return taskQueue.Count();
+    }
+    public int GetWorkerCount()
+    {
+        return workerList.Count;
+    }
+
+    public void RefreshOpenClosedPanel()
+    {
+        foreach (WorkerEntity worker in workerList)
+            if (!worker.IsWorking())
+            {
+                openClosedPanel.Hide();
+                return;
+            }
+        openClosedPanel.Show();
     }
 
     public void CreateWorkers(int qty)

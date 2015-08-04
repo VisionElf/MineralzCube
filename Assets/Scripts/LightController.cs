@@ -37,6 +37,7 @@ public class LightController : MonoBehaviour {
     void OnDay()
     {
         Map.instance.DestroyCreeps();
+        GameObject.Find("Player").GetComponent<Player>().mainBase.CreateWorkers(1);
     }
 
     void OnNight()

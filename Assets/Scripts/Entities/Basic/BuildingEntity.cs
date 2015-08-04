@@ -9,7 +9,6 @@ public class BuildingEntity : Entity {
     public int caseSizeX;
     public int caseSizeY;
 
-    public Texture buildingIcon;
 
     public Dummy buildingDummy;
     public float sizeY;
@@ -23,7 +22,7 @@ public class BuildingEntity : Entity {
 
     public void StartBuild()
     {
-        DisableCollider();
+        RemovePathMap();
         basicProperties.model.transform.localPosition = new Vector3(0, -sizeY, 0);
         isBuilt = false;
         foreach (ResourceCost resourceCost in resourcesCost)
@@ -40,7 +39,7 @@ public class BuildingEntity : Entity {
             resources = GetRemainingResources(resourceType);
         resourceCost.buildResources += resources;
 
-        if (!PathMapApplied() && resourceCost.buildResources > 0)
+        if (resourceCost.buildResources > 0)
             ApplyPathMap();
 
         if (HasHealth())
@@ -60,6 +59,7 @@ public class BuildingEntity : Entity {
     public void OnBuildFinish()
     {
         basicProperties.model.transform.localPosition = new Vector3(0, 0, 0);
+        pathMapApplied = false;
         ApplyPathMap();
 
         if (buildingDummy != null)

@@ -4,12 +4,6 @@ using System.Collections;
 public class Entity : MonoBehaviour {
 
     //FUNCTIONS
-    public void DisableCollider()
-    {
-        foreach (Collider collider in GetComponentsInChildren<Collider>())
-            if (collider != null)
-                GetComponentInChildren<Collider>().enabled = false;
-    }
     public void RemoveObject()
     {
         Map.instance.RemoveEntityFromMap(this);
@@ -17,8 +11,7 @@ public class Entity : MonoBehaviour {
         Destroy(gameObject);
     }
 
-    bool pathMapApplied;
-    public bool PathMapApplied() { return pathMapApplied; }
+    protected bool pathMapApplied = true;
     public void ApplyPathMap()
     {
         if (!pathMapApplied)
@@ -86,6 +79,16 @@ public class Entity : MonoBehaviour {
     public DepotEntity depotProperties
     {
         get { return GetComponent<DepotEntity>(); }
+    }
+
+    //MAIN BASE
+    public bool IsMainBase()
+    {
+        return GetComponent<MainBaseEntity>() != null;
+    }
+    public MainBaseEntity mainBaseProperties
+    {
+        get { return GetComponent<MainBaseEntity>(); }
     }
 
     //MOVABLE

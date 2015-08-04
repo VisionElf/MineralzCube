@@ -20,6 +20,8 @@ public class Player : MonoBehaviour {
     public MainBaseEntity mainBase { get; set; }
     List<DepotEntity> depots = new List<DepotEntity>();
 
+    Entity selectedUnit;
+
     BuildingEntity currentBuild;
     Dummy previewBuild;
     bool canBuild;
@@ -185,52 +187,72 @@ public class Player : MonoBehaviour {
         if (Input.GetMouseButtonDown(0))
         {
             if (previewBuild != null)
-            {
                 StartBuild();
-            }
             else
             {
-                for (int i = 0; i < buttonsRect.Count; i++)
-                    if (buttonsRect[i].Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
+                bool interfaceClicked = false;
+                if (selectedUnit == null)
+                {
+                    for (int i = 0; i < buttonsRect.Count; i++)
+                        if (buttonsRect[i].Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
+                        {
+                            PlaceBuilding(buildList[i]);
+                            interfaceClicked = true;
+                            break;
+                        }
+                }
+                if (!interfaceClicked)
+                {
+                    RaycastHit hitInfo;
+                    if (Physics.Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hitInfo))
                     {
-                        PlaceBuilding(buildList[i]);
-                        break;
+                        Entity entityClicked = hitInfo.collider.GetComponent<Entity>();
+                        if (entityClicked != null && entityClicked.IsMainBase())
+                            selectedUnit = entityClicked;
+                        else
+                            selectedUnit = null;
                     }
+                    else
+                        selectedUnit = null;
+                }
+                selectedUnit = null; //REMOVE
             }
         }
-
         else if (Input.GetMouseButton(1))
         {
-
             RaycastHit hitInfo;
             if (Physics.Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hitInfo))
             {
                 Entity entityClicked = hitInfo.collider.GetComponent<Entity>();
                 if (entityClicked != null && entityClicked.IsResource())
-                {
                     if (mainBase != null)
-                    {
-                        ResourceEntity resource = hitInfo.collider.GetComponent<ResourceEntity>();
-                        mainBase.AssignTask(new HarvestTask(resource));
-                    }
-                }
+                        mainBase.AssignTask(new HarvestTask(hitInfo.collider.GetComponent<ResourceEntity>()));
             }
         }
     }
     void UpdateKeyboardKeys()
     {
-        if (Input.GetKeyDown(KeyCode.W))
-            mainBase.CreateWorkers(1);
-
         if (Input.GetKeyDown(KeyCode.F1))
             Other.showDebug = !Other.showDebug;
 
-        for (int i = 0; i < buildList.Count; i++)
-            if (Input.GetKeyDown(buildShortcuts[i]))
+        if (selectedUnit == null)
+        {
+            for (int i = 0; i < buildList.Count; i++)
+                if (Input.GetKeyDown(buildShortcuts[i]))
+                {
+                    PlaceBuilding(buildList[i]);
+                    break;
+                }
+        }
+        else
+        {
+            if (selectedUnit.IsMainBase() && selectedUnit.mainBaseProperties.unitTrainedList != null)
             {
-                PlaceBuilding(buildList[i]);
-                break;
+                for (int i = 0; i < selectedUnit.mainBaseProperties.unitTrainedList.Count; i++)
+                    if (Input.GetKeyDown(buildShortcuts[i]))
+                        selectedUnit.mainBaseProperties.CreateWorkers(1);
             }
+        }
     }
     void Update()
     {
@@ -265,7 +287,7 @@ public class Player : MonoBehaviour {
 
             if (Other.showDebug)
             {
-                Rect debugTextRect = new Rect(0, 0, 300, 100);
+                Rect debugTextRect = new Rect(0, 0, 300, 120);
 
                 GUI.color = new Color(0, 0, 0, 0.8f);
                 GUI.DrawTexture(debugTextRect, Static.basic_texture);
@@ -283,6 +305,8 @@ public class Player : MonoBehaviour {
                 y += 20;
                 GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Task Count: " + mainBase.GetTaskCount());
                 y += 20;
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Worker Count: " + mainBase.GetWorkerCount() + "/" + mainBase.maxWorkersCount);
+                y += 20;
 
                 int size = 1;
                 int width = 300;
@@ -299,31 +323,47 @@ public class Player : MonoBehaviour {
         }
     }
 
+    public GUIStyle style;
+
     void DrawInterface()
     {
-        for (int i = 0; i < buildList.Count; i++)
+        if (selectedUnit == null)
         {
-            GUI.color = Color.white;
-            if (currentBuild == buildList[i])
-                GUI.color = Color.green;
-            Rect rect = buttonsRect[i];
-            GUI.DrawTexture(rect, buildList[i].buildingIcon);
-
-            GUIStyle style = new GUIStyle();
-            style.font = Resources.Load("AGENCYB") as Font;
-            style.fontSize = 14;
-            style.normal.textColor = Color.white;
-
-            GUIContent content = new GUIContent(buildList[i].name);
-            Vector3 textSize = style.CalcSize(content);
-            Rect textRect = new Rect(rect.x + (rect.width - textSize.x) / 2, rect.y + rect.width - textSize.y, rect.width, rect.height);
-            GUI.Label(textRect, content, style);
-
-            GUIContent content2 = new GUIContent(buildShortcuts[i].ToString());
-            //Vector3 textSize2 = style.CalcSize(content2);
-            Rect textRect2 = new Rect(rect.x, rect.y, rect.width, rect.height);
-            GUI.Label(textRect2, content2, style);
+            for (int i = 0; i < buildList.Count; i++)
+            {
+                GUI.color = Color.white;
+                if (currentBuild == buildList[i])
+                    GUI.color = Color.green;
+                Rect rect = buttonsRect[i];
+                GUI.DrawTexture(rect, buildList[i].basicProperties.buildingIcon);
+                GUILabel(rect, buildList[i].basicProperties.displayName, true);
+                GUILabel(rect, buildShortcuts[i].ToString());
+            }
         }
+        else
+        {
+            if (selectedUnit.IsMainBase() && selectedUnit.mainBaseProperties.unitTrainedList != null)
+            {
+                for (int i = 0; i < selectedUnit.mainBaseProperties.unitTrainedList.Count; i++)
+                {
+                    Entity entity = selectedUnit.mainBaseProperties.unitTrainedList[i];
+                    GUI.color = Color.white;
+                    Rect rect = buttonsRect[i];
+                    GUI.DrawTexture(rect, entity.basicProperties.buildingIcon);
+                    GUILabel(rect, entity.basicProperties.displayName, true);
+                    GUILabel(rect, buildShortcuts[i].ToString());
+                }
+            }
+        }
+    }
+
+    public void GUILabel(Rect rect, string text, bool centered = false)
+    {
+        GUIContent content = new GUIContent(text);
+        Vector3 textSize = style.CalcSize(content);
+        if (centered)
+            rect = new Rect(rect.x + (rect.width - textSize.x) / 2, rect.y + rect.width - textSize.y, rect.width, rect.height);
+        GUI.Label(rect, content, style);
     }
 
     MinimapItem[,] minimap;
