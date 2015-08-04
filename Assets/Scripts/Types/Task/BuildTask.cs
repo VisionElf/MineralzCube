@@ -44,7 +44,7 @@ public class BuildTask : Task {
         foreach (ResourceCost cost in building.resourcesCost)
             if (!cost.IsFull())
             {
-                count += worker.basicProperties.owner.GetAvailableResources(cost.resourceType);
+                count += worker.basicProperties.GetOwner().GetAvailableResources(cost.resourceType);
                 empty = empty && worker.resourceContainer.IsEmpty(cost.resourceType);
             }
 

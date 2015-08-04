@@ -438,6 +438,21 @@ public class PathfindingResult
     public List<Vector3> path { get; set; }
     public Collider firstStructureHit { get; set; }
 
+    public float distance
+    {
+        get
+        {
+            float dist = 0f;
+            Vector3 lastVector = path[0];
+            for (int i = 1; i < path.Count; i++)
+            {
+                dist += Vector3.Distance(lastVector, path[i]);
+                lastVector = path[i];
+            }
+            return dist;
+        }
+    }
+
     public PathfindingResult()
     {
         path = null;

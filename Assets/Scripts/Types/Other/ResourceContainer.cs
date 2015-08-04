@@ -30,7 +30,7 @@ public class ResourceContainer : MonoBehaviour {
                 quantity = total - current;
             resourceStock.stock += quantity;
             resourceStock.RefreshDummyList();
-            if (parent != null && parent.HaveDepot())
+            if (parent != null && parent.HasDepot())
                 parent.depotProperties.OnResouresChanged();
             return quantity;
         }

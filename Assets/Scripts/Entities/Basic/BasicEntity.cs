@@ -7,40 +7,18 @@ public class BasicEntity : Entity {
     //UNITY PROPERTIES
     public float radius;
 
+    public Model model;
+
     //PROPERTIES
-    public Player owner { get; set; }
+    Player owner;
 
-    /*Queue<Action> actions;
-    Action currentAction;
-
-    //ACTION FUNCTION
-    void Start()
+    public Player GetOwner() { return owner; }
+    public void SetOwner(Player player)
     {
-        actions = new Queue<Action>();
+        owner = player;
+        foreach (PlayerColorObject obj in GetComponentsInChildren<PlayerColorObject>())
+            obj.SetColor(player.playerColor);
     }
-    public void AddAction(Action action)
-    {
-        actions.Enqueue(action);
-    }
-    public void ClearActions()
-    {
-        actions.Clear();
-    }
-
-    IEnumerator DoActions()
-    {
-        while (actions.Count > 0)
-        {
-            if (currentAction == null)
-                currentAction = actions.Dequeue();
-
-            while (!Reached(currentAction.target))
-                yield return null;
-
-            while (currentAction.DoAction(this))
-                yield return null;
-        }
-    }*/
 
     //FUNCTION
     public bool Reached(Entity entity)
@@ -52,7 +30,7 @@ public class BasicEntity : Entity {
         if (entity == null)
         {
             print("reached: entity is null, parent is " + name);
-            return false;
+            return true;
         }
         return Reached(entity.transform.position, entity.basicProperties.radius + additionnalRange);
     }
@@ -70,7 +48,7 @@ public class BasicEntity : Entity {
                 movableProperties.MoveTowards(destination);
             return false;
         }
-        else
+        else if (IsMovable())
             movableProperties.StopMove();
         return distance <= distanceRange;
     }
@@ -93,7 +71,19 @@ public class BasicEntity : Entity {
     public void LookAt(Vector3 target)
     {
         Vector3 dir = (target - transform.position).normalized;
+
         if (dir.sqrMagnitude > 0)
-            transform.rotation = Quaternion.LookRotation(dir);
+        {
+            Quaternion rotation = Quaternion.LookRotation(dir);
+            if (model == null)
+                print("[ERROR] " + name + " has no model");
+            else
+            {
+                if (model.enableTurret)
+                    model.turret.transform.rotation = rotation;
+                else
+                    model.transform.rotation = rotation;
+            }
+        }
     }
 }

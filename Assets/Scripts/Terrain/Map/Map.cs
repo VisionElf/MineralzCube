@@ -90,6 +90,10 @@ public class Map : MonoBehaviour {
     List<Case> emptyCases;
     List<CreepSpawnEntity> creepSpawns;
 
+    public List<Entity> allEntitiesList;
+    public List<ResourceEntity> resourcesList;
+    public List<EnergyEntity> energyUnitList;
+    public List<HealthEntity> healthUnitList;
 
     //STATIC
     static public Map instance;
@@ -98,6 +102,10 @@ public class Map : MonoBehaviour {
     void Start()
     {
         instance = this;
+
+        energyUnitList = new List<EnergyEntity>();
+        allEntitiesList = new List<Entity>();
+        resourcesList = new List<ResourceEntity>();
 
         GenerateMap();
     }
@@ -244,11 +252,10 @@ public class Map : MonoBehaviour {
     }
     public void ClearObjects()
     {
-        foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Terrain"))
-        {
-            GameObject.Destroy(obj);
-        }
+        /*foreach (GameObject obj in Find)
+            GameObject.Destroy(obj);*/
     }
+
     public void CreateObjects()
     {
         for (int x = 0; x < cases.GetLength(0); x++)
@@ -261,15 +268,40 @@ public class Map : MonoBehaviour {
         }
     }
 
-    public GameObject CreateEntityOnMap(Entity type, Vector3 position, bool randomHeight)
+    public Entity CreateEntityOnMap(Entity type, Vector3 position, bool randomize)
     {
         GameObject obj = GameObject.Instantiate(type.gameObject);
         obj.transform.position = SnapToGrid(position, obj.GetComponent<Entity>().buildingProperties);
-        if (randomHeight)
+        if (randomize)
+        {
             obj.GetComponentInChildren<Renderer>().gameObject.transform.position -= new Vector3(0, randomGenerator.Next(0, 100) * 0.25f / 100f, 0f);
-        obj.transform.Rotate(Vector3.up * randomGenerator.Next(0, 4) * 90);
-        obj.tag = "Terrain";
-        return obj;
+            obj.transform.Rotate(Vector3.up * randomGenerator.Next(0, 4) * 90);
+        }
+
+        Entity ent = obj.GetComponent<Entity>();
+
+        if (ent.HasEnergy())
+            energyUnitList.Add(ent.energyProperties);
+        if (ent.IsResource())
+            resourcesList.Add(ent.resourceProperties);
+        if (ent.HasHealth())
+            healthUnitList.Add(ent.healthProperties);
+        allEntitiesList.Add(ent);
+
+        return ent;
+    }
+    public Entity CreateEntityOnMap(Entity type, Vector3 position)
+    {
+        return CreateEntityOnMap(type, position, false);
+    }
+    public void RemoveEntityFromMap(Entity entity)
+    {
+        if (entity.HasDepot())
+            entity.basicProperties.GetOwner().RemoveDepot(entity.depotProperties);
+        if (entity.HasEnergy())
+            energyUnitList.Remove(entity.energyProperties);
+        if (entity.IsResource())
+            resourcesList.Remove(entity.resourceProperties);
     }
 
     public void CreateCreepSpawns(Case startingCase, List<Case> startingPoints)
@@ -431,29 +463,6 @@ public class Map : MonoBehaviour {
         return list;
     }
 
-    public int GetCountAround(Case c, int distance, ECaseType type, bool borderCount)
-    {
-        int count = 0;
-        for (int i = -distance; i <= distance; i++)
-        {
-            for (int j = -distance; j <= distance; j++)
-            {
-                if (i != 0 || j != 0)
-                {
-                    int x = i + c.x;
-                    int y = j + c.y;
-                    if (InBounds(x, y))
-                    {
-                        if (cases[x, y].caseType == type)
-                            count++;
-                    }
-                    else if (borderCount)
-                        count++;
-                }
-            }
-        }
-        return count;
-    }
     public KeyValuePair<ECaseType, int> GetTypeAround(Case c, int distance, bool borderCount)
     {
         Dictionary<ECaseType, int> counts = new Dictionary<ECaseType, int>();
@@ -468,6 +477,8 @@ public class Map : MonoBehaviour {
                     if (InBounds(x, y))
                     {
                         ECaseType type = cases[x, y].caseType;
+                        if (type == ECaseType.Mineral || type == ECaseType.RedCrystal)
+                            type = ECaseType.Rock;
                         if (counts.ContainsKey(type))
                             counts[type]++;
                         else

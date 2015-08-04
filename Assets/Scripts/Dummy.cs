@@ -4,15 +4,15 @@ using System.Collections;
 public class Dummy : MonoBehaviour {
 
     //UNITY PROPERTIES
-    public Material defaultMaterial;
+
+    //PROPERTIES
     public Vector3 defaultPosition { get; set; }
-    public Vector3 defaultRotation;
     public Vector3 defaultScale { get; set; }
 
+    public Material defaultMaterial { get; set; }
     float decalageY;
     bool visible;
 
-    //PROPERTIES
     void Awake()
     {
         defaultPosition = transform.localPosition;
@@ -55,15 +55,30 @@ public class Dummy : MonoBehaviour {
         if (defaultMaterial != null)
             color = new Color(r, g, b, defaultMaterial.color.a);
         else
-            color = new Color(r, g, b, 1f);
+        {
+            SetDefaultMaterial();
+            color = new Color(r, g, b, defaultMaterial.color.a);
+        }
     }
     public void SetColor(float r, float g, float b, float a)
     {
         color = new Color(r, g, b, a);
     }
+    public void SetDefaultMaterial()
+    {
+        if (defaultMaterial == null)
+        {
+            Renderer renderer = GetComponent<Renderer>();
+            if (renderer == null)
+                renderer = GetComponentInChildren<Renderer>();
+            if (renderer != null && renderer.material != null)
+                defaultMaterial = new Material(renderer.material);
+        }
+    }
 
     public void ResetColor()
     {
+        SetDefaultMaterial();
         color = defaultMaterial.color;
     }
 

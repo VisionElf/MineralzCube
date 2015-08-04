@@ -12,15 +12,19 @@ public class MovableEntity : Entity {
     Vector3 targetDestination;
     List<Vector3> waypoints;
 
-    void Start()
+    public bool ignoreStructure { get; set; }
+
+    void Awake()
     {
-        waypoints = new List<Vector3>();
+        ignoreStructure = false;
+        if (waypoints == null)
+            waypoints = new List<Vector3>();
     }
 
     public void FindWaypoints(Vector3 target)
     {
         targetDestination = target;
-        Pathfinding.RequestPath(new PathfindingParameters(transform.position, target), OnPathFound);
+        Pathfinding.RequestPath(new PathfindingParameters(transform.position, target) { ignoreStructure = ignoreStructure }, OnPathFound);
         //waypoints = Pathfinding.instance.FindPath(new PathfindingParameters(transform.position, target)).path;
     }
 
@@ -65,6 +69,11 @@ public class MovableEntity : Entity {
     {
         targetDestination = Vector3.zero;
         waypoints.Clear();
+    }
+    public void RefreshPath()
+    {
+        if (waypoints.Count > 0)
+            FindWaypoints(targetDestination);
     }
 
     public void DirectMoveToDir(Vector3 direction)

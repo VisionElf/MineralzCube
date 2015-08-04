@@ -8,9 +8,10 @@ public class Player : MonoBehaviour {
 
     //UNITY PROPERTIES
     public Camera playerCamera;
-    public GameObject startingUnit;
+    public Entity startingUnit;
 
     public List<BuildingEntity> buildList;
+    public Color playerColor;
 
     public Material previewBuildMaterial;
     KeyCode[] buildShortcuts = new KeyCode[] { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7 };
@@ -47,13 +48,13 @@ public class Player : MonoBehaviour {
 
     public void CreateStartingUnits(Vector3 position)
     {
-        GameObject obj = GameObject.Instantiate(startingUnit);
-        mainBase = obj.GetComponent<MainBaseEntity>();
-        obj.transform.position = Map.instance.SnapToGrid(position, mainBase.buildingProperties);
-        mainBase.basicProperties.owner = this;
+        Entity ent = Map.instance.CreateEntityOnMap(startingUnit, position);
+        mainBase = ent.GetComponent<MainBaseEntity>();
+        mainBase.basicProperties.SetOwner(this);
         mainBase.buildingProperties.OnBuildFinish();
 
-        playerCamera.GetComponent<CameraController>().PanCamera(obj.transform.position);
+
+        playerCamera.GetComponent<CameraController>().PanCamera(ent.transform.position);
         depots.Add(mainBase.depotProperties);
     }
 
@@ -117,7 +118,7 @@ public class Player : MonoBehaviour {
         currentBuild = building;
         if (previewBuild != null)
             previewBuild.DestroyDummy();
-        GameObject previewObj = GameObject.Instantiate(building.model);
+        GameObject previewObj = GameObject.Instantiate(building.basicProperties.model.gameObject);
         previewBuild = previewObj.GetComponent<Dummy>();
         previewBuild.defaultMaterial = previewBuildMaterial;
         previewBuild.material = previewBuildMaterial;
@@ -128,16 +129,24 @@ public class Player : MonoBehaviour {
     {
         if (currentBuild != null)
         {
-            GameObject buildingObj = GameObject.Instantiate(currentBuild.gameObject);
-            BuildingEntity building = buildingObj.GetComponent<BuildingEntity>();
+            Entity entity = Map.instance.CreateEntityOnMap(currentBuild, previewBuild.transform.position);
+            BuildingEntity building = entity.buildingProperties;
             building.transform.position = previewBuild.transform.position;
-            building.basicProperties.owner = this;
+            building.basicProperties.SetOwner(this);
             building.StartBuild();
-            if (building.HaveDepot())
+            if (building.HasDepot())
                 depots.Add(building.depotProperties);
-            mainBase.AssignTask(new BuildTask(building));
+
+            if (building.resourcesCost.Count == 0)
+                building.OnBuildFinish();
+            else
+                mainBase.AssignTask(new BuildTask(building));
             currentBuild = null;
         }
+    }
+    public void RemoveDepot(DepotEntity depot)
+    {
+        depots.Remove(depot);
     }
 
     IEnumerator UpdateBuild()
@@ -196,7 +205,8 @@ public class Player : MonoBehaviour {
             RaycastHit hitInfo;
             if (Physics.Raycast(playerCamera.ScreenPointToRay(Input.mousePosition), out hitInfo))
             {
-                if (hitInfo.collider.tag == "Terrain")
+                Entity entityClicked = hitInfo.collider.GetComponent<Entity>();
+                if (entityClicked != null && entityClicked.IsResource())
                 {
                     if (mainBase != null)
                     {

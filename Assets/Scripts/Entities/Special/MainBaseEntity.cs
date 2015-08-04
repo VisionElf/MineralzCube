@@ -25,13 +25,12 @@ public class MainBaseEntity : Entity {
     {
         if (workerList.Count < maxWorkersCount)
         {
-            GameObject obj = GameObject.Instantiate(workerType.gameObject);
-            obj.transform.position = transform.position;
-            WorkerEntity ent = obj.GetComponent<WorkerEntity>();
-            ent.basicProperties.owner = basicProperties.owner;
-            ent.mainBase = this;
-            workerList.Add(ent);
-            ent.RequestTask();
+            Entity entity = Map.instance.CreateEntityOnMap(workerType, transform.position);
+            WorkerEntity worker = entity.workerProperties;
+            worker.basicProperties.SetOwner(basicProperties.GetOwner());
+            worker.mainBase = this;
+            workerList.Add(worker);
+            worker.RequestTask();
         }
     }
 

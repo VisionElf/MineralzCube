@@ -37,13 +37,9 @@ public class CreepSpawnEntity : Entity {
 
     void SpawnCreep()
     {
-        GameObject creepObj = GameObject.Instantiate(creepType.gameObject);
-        creepObj.transform.position = transform.position;
-        creepObj.tag = "Creep";
-        Entity enemy = creepObj.GetComponent<Entity>();
-        if (enemy.CanAttack())
-        {
+        Entity enemy = Map.instance.CreateEntityOnMap(creepType, transform.position);
+        enemy.tag = "Creep";
+        if (enemy.CanAttack() && playerToAttack.mainBase != null)
             enemy.attackProperties.AttackTo(playerToAttack.mainBase);
-        }
     }
 }

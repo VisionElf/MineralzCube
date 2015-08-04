@@ -11,7 +11,7 @@ public class DepotEntity : Entity {
 
     public void OnResouresChanged()
     {
-        basicProperties.owner.OnResourcesChanged();
+        basicProperties.GetOwner().OnResourcesChanged();
     }
 
     public bool IsEmpty(EResourceType resourceType)

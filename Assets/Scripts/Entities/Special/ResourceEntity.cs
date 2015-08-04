@@ -77,5 +77,5 @@ public class ResourceEntity : Entity {
 
 public enum EResourceType
 {
-    None, Rock, Mineral
+    None, Rock, Mineral, RedCrystal
 }

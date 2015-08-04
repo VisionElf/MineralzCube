@@ -11,8 +11,6 @@ public class ResourceStock
     public int stock { get; set; }
 
     public GameObject parent;
-    public int dummyListStart;
-    public int dummyListEnd;
 
     //PROPERTIES
     List<Dummy> dummyList;

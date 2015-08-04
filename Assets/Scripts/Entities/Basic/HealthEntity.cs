@@ -31,8 +31,19 @@ public class HealthEntity : Entity {
             damage = health;
         health -= damage;
         potentialDamage -= damage;
+        StopCoroutine("DamageVisualEffect");
+        StartCoroutine("DamageVisualEffect");
         if (health <= 0)
             OnDeath();
+    }
+
+    IEnumerator DamageVisualEffect()
+    {
+        for (int i = 0; i < Mathf.RoundToInt(1 / Time.deltaTime); i++)
+        {
+            basicProperties.model.SetColor(1f - i * Time.deltaTime, 0, 0);
+            yield return null;
+        }
     }
 
     public void Heal(float heal)

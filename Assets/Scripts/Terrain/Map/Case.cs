@@ -3,7 +3,7 @@ using System.Collections;
 
 public enum ECaseType
 {
-    Empty, Rock, Mineral
+    Empty, Rock, Mineral, RedCrystal
 }
 
 public class Case {

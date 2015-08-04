@@ -128,7 +128,7 @@ public class WorkerEntity : Entity {
             // EMPTY CONTAINER
             if (!resourceContainer.IsEmpty())
             {
-                DepotEntity depot = basicProperties.owner.GetNearestDepotNotFull(this, currentResourceHarvested);
+                DepotEntity depot = basicProperties.GetOwner().GetNearestDepotNotFull(this, currentResourceHarvested);
                 if (depot != null)
                 {
                     //REACH
@@ -153,12 +153,12 @@ public class WorkerEntity : Entity {
         // HARVEST CONDITION
         while (currentTask != null && !currentTask.Done() && !currentTask.PauseCondition())
         {
-            EResourceType currentBuildResource = currentTask.GetTarget().buildingProperties.GetResourceCostType();
+            EResourceType currentBuildResource = currentTask.GetTarget().buildingProperties.GetAvailableResourceCostType();
             if (currentBuildResource == EResourceType.None)
                 print("[ERROR] ON A MERDER QUELQUE PART");
 
             //FILL CONTAINER
-            DepotEntity depot = basicProperties.owner.GetNearestDepotNotEmpty(this, currentBuildResource);
+            DepotEntity depot = basicProperties.GetOwner().GetNearestDepotNotEmpty(this, currentBuildResource);
             if (depot != null)
             {
                 //REACH
@@ -183,7 +183,7 @@ public class WorkerEntity : Entity {
             {
                 // EMPTY CONTAINER
                 EResourceType depositResourceType = resourceContainer.GetCurrentResourceType();
-                DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(this, depositResourceType);
+                DepotEntity depot2 = basicProperties.GetOwner().GetNearestDepotNotFull(this, depositResourceType);
 
                 if (depot2 != null)
                 {
@@ -204,7 +204,7 @@ public class WorkerEntity : Entity {
         {
             // EMPTY CONTAINER
             EResourceType depositResourceType = resourceContainer.GetCurrentResourceType();
-            DepotEntity depot2 = basicProperties.owner.GetNearestDepotNotFull(this, depositResourceType);
+            DepotEntity depot2 = basicProperties.GetOwner().GetNearestDepotNotFull(this, depositResourceType);
 
             if (depot2 != null)
             {

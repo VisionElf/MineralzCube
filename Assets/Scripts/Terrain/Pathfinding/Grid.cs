@@ -129,6 +129,10 @@ public class Grid : MonoBehaviour
         foreach (Node n in GetAroundNodes(posNode, rad))
             CheckWalkable(n);
 
+
+        Pathfinding.instance.RefreshCache();
+        foreach (MovableEntity obj in GameObject.FindObjectsOfType<MovableEntity>())
+            obj.RefreshPath();
     }
 
     public List<Node> GetAroundNodes(Node node, int radius)

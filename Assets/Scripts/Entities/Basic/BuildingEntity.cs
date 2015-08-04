@@ -12,7 +12,6 @@ public class BuildingEntity : Entity {
     public Texture buildingIcon;
 
     public Dummy buildingDummy;
-    public GameObject model;
     public float sizeY;
 
     //PROPERTIES
@@ -25,12 +24,12 @@ public class BuildingEntity : Entity {
     public void StartBuild()
     {
         DisableCollider();
-        model.transform.localPosition = new Vector3(0, -sizeY, 0);
+        basicProperties.model.transform.localPosition = new Vector3(0, -sizeY, 0);
         isBuilt = false;
         foreach (ResourceCost resourceCost in resourcesCost)
             resourceCost.buildResources = 0;
 
-        if (HaveHealth())
+        if (HasHealth())
             healthProperties.health = 1;
     }
 
@@ -44,7 +43,7 @@ public class BuildingEntity : Entity {
         if (!PathMapApplied() && resourceCost.buildResources > 0)
             ApplyPathMap();
 
-        if (HaveHealth())
+        if (HasHealth())
             healthProperties.AddPercentHealth((float)resources / resourceCost.cost);
         RefreshBuilding();
 
@@ -55,19 +54,21 @@ public class BuildingEntity : Entity {
 
     public void RefreshBuilding()
     {
-        model.transform.localPosition = new Vector3(0, -sizeY + sizeY * GetBuildingProgress(), 0);
+        basicProperties.model.transform.localPosition = new Vector3(0, -sizeY + sizeY * GetBuildingProgress(), 0);
     }
 
     public void OnBuildFinish()
     {
-        if (!PathMapApplied())
-            ApplyPathMap();
+        basicProperties.model.transform.localPosition = new Vector3(0, 0, 0);
+        ApplyPathMap();
 
         if (buildingDummy != null)
             buildingDummy.Hide();
 
         if (CanAttack())
             attackProperties.StartScan();
+        else if (CanGenerate())
+            generatorProperties.StartScan();
 
         isBuilt = true;
     }
@@ -95,10 +96,10 @@ public class BuildingEntity : Entity {
         return true;
     }
 
-    public EResourceType GetResourceCostType()
+    public EResourceType GetAvailableResourceCostType()
     {
         foreach (ResourceCost cost in resourcesCost)
-            if (!cost.IsFull())
+            if (!cost.IsFull() && basicProperties.GetOwner().GetAvailableResources(cost.resourceType) > 0)
                 return cost.resourceType;
         return EResourceType.None;
     }

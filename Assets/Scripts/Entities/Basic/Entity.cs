@@ -12,6 +12,7 @@ public class Entity : MonoBehaviour {
     }
     public void RemoveObject()
     {
+        Map.instance.RemoveEntityFromMap(this);
         RemovePathMap();
         Destroy(gameObject);
     }
@@ -20,21 +21,25 @@ public class Entity : MonoBehaviour {
     public bool PathMapApplied() { return pathMapApplied; }
     public void ApplyPathMap()
     {
-        pathMapApplied = true;
-        foreach (Collider collider in GetComponentsInChildren<Collider>())
-            if (collider != null)
-                GetComponentInChildren<Collider>().enabled = true;
-        Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
-        Pathfinding.instance.RefreshCache();
+        if (!pathMapApplied)
+        {
+            pathMapApplied = true;
+            foreach (Collider collider in GetComponentsInChildren<Collider>())
+                if (collider != null)
+                    GetComponentInChildren<Collider>().enabled = true;
+            Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+        }
     }
     public void RemovePathMap()
     {
-        pathMapApplied = false;
-        foreach (Collider collider in GetComponentsInChildren<Collider>())
-            if (collider != null)
-                GetComponentInChildren<Collider>().enabled = false;
-        Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
-        Pathfinding.instance.RefreshCache();
+        if (pathMapApplied)
+        {
+            pathMapApplied = false;
+            foreach (Collider collider in GetComponentsInChildren<Collider>())
+                if (collider != null)
+                    GetComponentInChildren<Collider>().enabled = false;
+            Grid.instance.RefreshGrid(transform.position, basicProperties.radius);
+        }
     }
 
     //PROPERTIES
@@ -54,7 +59,7 @@ public class Entity : MonoBehaviour {
     }
 
     //HEALTH
-    public bool HaveHealth()
+    public bool HasHealth()
     {
         return GetComponent<HealthEntity>() != null;
     }
@@ -74,7 +79,7 @@ public class Entity : MonoBehaviour {
     }
 
     //DEPOT
-    public bool HaveDepot()
+    public bool HasDepot()
     {
         return GetComponent<DepotEntity>() != null;
     }
@@ -121,5 +126,25 @@ public class Entity : MonoBehaviour {
     public ResourceEntity resourceProperties
     {
         get { return GetComponent<ResourceEntity>(); }
+    }
+
+    //ENERGY
+    public bool HasEnergy()
+    {
+        return GetComponent<EnergyEntity>() != null;
+    }
+    public EnergyEntity energyProperties
+    {
+        get { return GetComponent<EnergyEntity>(); }
+    }
+
+    //GENERATOR
+    public bool CanGenerate()
+    {
+        return GetComponent<GeneratorEntity>() != null;
+    }
+    public GeneratorEntity generatorProperties
+    {
+        get { return GetComponent<GeneratorEntity>(); }
     }
 }
