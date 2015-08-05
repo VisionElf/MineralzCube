@@ -275,9 +275,17 @@ public class Player : MonoBehaviour {
         foreach (float f in fpsList)
             avgFps += f;
         avgFps /= fpsList.Count;
+
+        if (Pathfinding.instance.frameCount > 0)
+            frameCountTotal.Add(Pathfinding.instance.frameCount);
+        foreach (int f in frameCountTotal)
+            if (f > frameCountMax)
+                frameCountMax = f;
     }
 
     List<Rect> buttonsRect;
+    List<int> frameCountTotal = new List<int>();
+    float frameCountMax;
     void OnGUI()
     {
         if (Other.gameStarted)
@@ -287,7 +295,7 @@ public class Player : MonoBehaviour {
 
             if (Other.showDebug)
             {
-                Rect debugTextRect = new Rect(0, 0, 300, 120);
+                Rect debugTextRect = new Rect(0, 0, 400, 140);
 
                 GUI.color = new Color(0, 0, 0, 0.8f);
                 GUI.DrawTexture(debugTextRect, Static.basic_texture);
@@ -301,7 +309,10 @@ public class Player : MonoBehaviour {
                 GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Pathfinding Count: " + Pathfinding.instance.callCount + " - " + Pathfinding.instance.cacheCallCount +
                     " (" + Pathfinding.instance.cacheCount + " cached), avg= " + Mathf.Round(Pathfinding.instance.GetAverageTime()) + "ms");
                 y += 20;
-                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "PathRequests Count: " + Pathfinding.instance.requestsPathCount + " (" + Pathfinding.requestsPathTotal + ")");
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "PathRequests Count: " + Pathfinding.instance.requestsPathCount + " (" + Pathfinding.requestsPathTotal + ")" +
+                    " simple: " + Pathfinding.instance.simplePathCount + " (" + Mathf.RoundToInt(Pathfinding.instance.simplePathCount * 100f / Pathfinding.instance.callCount) + ")");
+                y += 20;
+                GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Last frame Paths: " + frameCountTotal[frameCountTotal.Count - 1] + " (" + frameCountMax + ")");
                 y += 20;
                 GUI.Label(new Rect(0, y, debugTextRect.width, 100), "Task Count: " + mainBase.GetTaskCount());
                 y += 20;

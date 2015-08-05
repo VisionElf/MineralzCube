@@ -8,6 +8,8 @@ public class Entity : MonoBehaviour {
     {
         Map.instance.RemoveEntityFromMap(this);
         RemovePathMap();
+        if (IsBasic())
+            basicProperties.OnDestroyNotWhenApplicationIsFinished();
         Destroy(gameObject);
     }
 

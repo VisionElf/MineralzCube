@@ -17,6 +17,7 @@ public class Other {
     {
         maxLoading = _maxLoading;
         loading = _loading;
+        sw.Reset();
         sw.Start();
         if (print)
             Debug.Log(step + "...");

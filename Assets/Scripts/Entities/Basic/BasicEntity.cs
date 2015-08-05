@@ -22,6 +22,15 @@ public class BasicEntity : Entity {
             obj.SetColor(player.playerColor);
     }
 
+    public delegate void OnDestroyHandler();
+    public event OnDestroyHandler OnDestroyAction;
+
+    public void OnDestroyNotWhenApplicationIsFinished()
+    {
+        if (OnDestroyAction != null)
+            OnDestroyAction();
+    }
+
     //FUNCTION
     public bool Reached(Entity entity)
     {

@@ -65,8 +65,11 @@ public class Pathfinding : MonoBehaviour
     }
 
     Node n;
+    public int simplePathCount { get; set; }
+    public int frameCount { get; set; }
     void Update()
     {
+        frameCount = 0;
         if (Input.GetKeyDown(KeyCode.P))
             FindPath(new PathfindingParameters(start.position, end.position));
 
@@ -102,8 +105,13 @@ public class Pathfinding : MonoBehaviour
     {
         while (pathRequests.Count > 0)
         {
-            PathfindingRequest request = pathRequests.Dequeue();
-            request.callback(FindPath(request.parameter));
+            int i = 0;
+            while (i < 4 && pathRequests.Count > 0)
+            {
+                PathfindingRequest request = pathRequests.Dequeue();
+                request.callback(FindPath(request.parameter));
+                i++;
+            }
             yield return null;
         }
 
@@ -122,6 +130,9 @@ public class Pathfinding : MonoBehaviour
     PathfindingResult FindPath(PathfindingParameters parameters)
     {
         PathfindingResult result = new PathfindingResult();
+        result.startPoint = parameters.start;
+        result.entity = parameters.entity;
+
         Node startNode = grid.GetNodeAt(parameters.start);
         Node endNode = grid.GetNodeAt(parameters.end);
 
@@ -141,7 +152,7 @@ public class Pathfinding : MonoBehaviour
             result.path = new List<Vector3>(cacheResult);
             return result;
         }
-
+        frameCount++;
         callCount++;
         Stopwatch sw = new Stopwatch();
         sw.Start();
@@ -159,6 +170,25 @@ public class Pathfinding : MonoBehaviour
 
         Heap<Node> openList = new Heap<Node>(grid.gridSize);
         HashSet<Node> closedList = new HashSet<Node>();
+
+        RaycastHit[] tempHits = GetCollisionsInRay(parameters.start, parameters.end);
+        bool simplePath = true;
+        foreach (RaycastHit hit in tempHits)
+        {
+            if (hit.collider == startObstacle || hit.collider == endObstacle)
+                continue;
+            else
+            {
+                simplePath = false;
+                break;
+            }
+        }
+        if (simplePath)
+        {
+            simplePathCount++;
+            result.path = new List<Vector3>() { parameters.end };
+            return result;
+        }
 
         openList.Add(startNode);
 
@@ -301,7 +331,7 @@ public class Pathfinding : MonoBehaviour
             for (int i = lastIndex + 1; i < path.Count; i++)
             {
                 Vector3 pos = path[i];
-                RaycastHit[] hits = Physics.RaycastAll(lastPos + Vector3.up * 0.5f, (pos - lastPos).normalized, Vector3.Distance(pos, lastPos), grid.mask);
+                RaycastHit[] hits = GetCollisionsInRay(lastPos, pos);//Physics.RaycastAll(lastPos + Vector3.up * 0.5f, (pos - lastPos).normalized, Vector3.Distance(pos, lastPos), grid.mask);
                 if (hits.Length == 0 || (grid.cornerCutting && Vector3.Distance(pos, lastPos) <= Mathf.Sqrt((grid.nodeSize * grid.nodeSize) * 2)) || HitContainsOnlyCollider(hits, startCol) || HitContainsOnlyCollider(hits, endCol))
                 {
                     bestPos = pos;
@@ -373,6 +403,11 @@ public class Pathfinding : MonoBehaviour
         return list;
     }
 
+    public RaycastHit[] GetCollisionsInRay(Vector3 start, Vector3 end)
+    {
+        return Physics.RaycastAll(start + Vector3.up * 0.5f, (end - start).normalized, Vector3.Distance(start, end), grid.mask);
+    }
+
     public List<Vector3> CorrectPathForRadius(List<Vector3> path, float radius)
     {
         List<Vector3> correctPath = new List<Vector3>();
@@ -435,28 +470,32 @@ public class PathfindingRequest
 
 public class PathfindingResult
 {
+    public Vector3 startPoint { get; set; }
     public List<Vector3> path { get; set; }
     public Collider firstStructureHit { get; set; }
+    public Entity entity { get; set; }
 
     public float distance
     {
         get
         {
-            float dist = 0f;
-            Vector3 lastVector = path[0];
-            for (int i = 1; i < path.Count; i++)
+            if (path.Count > 0)
             {
-                dist += Vector3.Distance(lastVector, path[i]);
-                lastVector = path[i];
+                float dist = 0f;
+                Vector3 lastVector = startPoint;
+                for (int i = 0; i < path.Count; i++)
+                {
+                    dist += Vector3.Distance(lastVector, path[i]);
+                    lastVector = path[i];
+                }
+                return dist;
             }
-            return dist;
+            return -1;
         }
     }
 
     public PathfindingResult()
     {
-        path = null;
-        firstStructureHit = null;
     }
 }
 
@@ -467,6 +506,7 @@ public class PathfindingParameters
     public float radius { get; set; }
     public bool onlyCheckExists { get; set; }
     public bool ignoreStructure { get; set; }
+    public Entity entity { get; set; }
 
     public PathfindingParameters(Vector3 _start, Vector3 _end)
     {

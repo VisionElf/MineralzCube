@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class AttackEntity : Entity {
 
@@ -21,30 +22,38 @@ public class AttackEntity : Entity {
     HealthEntity mainTargetEntity;
     HealthEntity targetEntity;
 
+    bool newSystem = true;
+
     public void AttackTo(Entity entity)
     {
         StopCoroutine("Attack");
         targetEntity = null;
         mainTargetEntity = entity.healthProperties;
-        if (!Pathfinding.instance.PathExists(transform.position, entity.transform.position))
+        if (!newSystem)
         {
-            print("attackto request");
-            Pathfinding.RequestPath(new PathfindingParameters(transform.position, entity.transform.position) { ignoreStructure = true }, OnPathFound);
+            if (!Pathfinding.instance.PathExists(transform.position, entity.transform.position))
+            {
+                print("attackto request");
+                Pathfinding.RequestPath(new PathfindingParameters(transform.position, entity.transform.position) { ignoreStructure = true }, OnPathFound);
+            }
+            else
+            {
+                targetEntity = mainTargetEntity;
+                AttackSingle(targetEntity);
+            }
         }
         else
         {
-            targetEntity = mainTargetEntity;
-            AttackSingle(targetEntity);
+            movableProperties.ignoreStructure = true;
+            //StartScan();
+            StopCoroutine("AttackAndMove");
+            StartCoroutine("AttackAndMove");
         }
-        /*movableProperties.ignoreStructure = true;
-        StartScan();
-        StopCoroutine("AttackAndMove");
-        StartCoroutine("AttackAndMove");*/
     }
 
     IEnumerator AttackAndMove()
     {
-        while (targetEntity != null || !basicProperties.Reached(mainTargetEntity))
+        while (targetEntity != null || (mainTargetEntity != null && !basicProperties.Reached(mainTargetEntity)))
             yield return null;
 
         movableProperties.ignoreStructure = false;
@@ -65,8 +74,11 @@ public class AttackEntity : Entity {
     public void AttackSingle(Entity target)
     {
         StopCoroutine("Attack");
-        targetEntity = target.healthProperties;
-        StartCoroutine("Attack");
+        if (target != null)
+        {
+            targetEntity = target.healthProperties;
+            StartCoroutine("Attack");
+        }
     }
 
     public bool CanAttackEntity(HealthEntity target)
@@ -75,7 +87,6 @@ public class AttackEntity : Entity {
             return energyProperties.HasEnoughEnergy();
         return true;
     }
-
     public bool AttackTarget(HealthEntity target)
     {
         if (target != null && CanAttackEntity(target) && target.IsAlive() && !target.IsPotentiallyDead() && basicProperties.CanReach(target, attackRange))
@@ -87,9 +98,80 @@ public class AttackEntity : Entity {
                 LaunchProjectile(target);
             else
                 target.Damage(attackDamage);
-            return true;
+            return target != null && target.IsAlive() && !target.IsPotentiallyDead();
         }
         return false;
+    }
+
+    public class PotentialTarget
+    {
+        public Entity entity;
+        public float distance;
+        public PotentialTarget(Entity ent, float dist)
+        {
+            entity = ent;
+            distance = dist;
+        }
+
+        static public int Compare(PotentialTarget p1, PotentialTarget p2)
+        {
+            if (p1.distance == p2.distance)
+                return 0;
+            else if (p1.distance > -1 && (p1.distance < p2.distance || p2.distance == -1))
+                return -1;
+            else
+                return 1;
+        }
+
+        static public bool Contains(List<PotentialTarget> list, Entity entity)
+        {
+            foreach (PotentialTarget target in list)
+                if (target.entity == entity)
+                    return true;
+            return false;
+        }
+        static public PotentialTarget Get(List<PotentialTarget> list, Entity entity)
+        {
+            foreach (PotentialTarget target in list)
+                if (target.entity == entity)
+                    return target;
+            return null;
+        }
+    }
+
+    List<PotentialTarget> targets = new List<PotentialTarget>();
+    public void OnTriggerEnter(Collider other)
+    {
+        if (other != null)
+        {
+            Entity entity = other.GetComponent<Entity>();
+            if (entity != null && entity.HasHealth() && entity.basicProperties.GetOwner() != basicProperties.GetOwner() && !PotentialTarget.Contains(targets, entity))
+            {
+                targets.Add(new PotentialTarget(entity, -1f));
+                UpdateTargets();
+            }
+        }
+    }
+
+    public void UpdateTargets()
+    {
+        foreach (PotentialTarget target in targets.ToArray())
+            if (target.entity != null && target.entity.HasHealth() && target.entity.healthProperties.IsAlive())
+                Pathfinding.RequestPath(new PathfindingParameters(transform.position, target.entity.transform.position) { entity = target.entity }, OnTargetPathFound);
+            else
+                targets.Remove(target);
+    }
+
+    public void OnTargetPathFound(PathfindingResult result)
+    {
+        PotentialTarget target = PotentialTarget.Get(targets, result.entity);
+        if (target != null)
+        {
+            target.distance = result.distance;
+            if (targets.Count > 1)
+                targets.Sort(PotentialTarget.Compare);
+            AttackSingle(targets[0].entity);
+        }
     }
 
     public void StartScan()
@@ -112,7 +194,7 @@ public class AttackEntity : Entity {
                 break;
             else
                 targetEntity = null;
-            yield return new WaitForSeconds(scanSpeed);
+            yield return null;// new WaitForSeconds(scanSpeed);
         }
 
         AttackSingle(targetEntity);
@@ -163,9 +245,33 @@ public class AttackEntity : Entity {
 
         targetEntity = null;
 
-        if (mainTargetEntity != null && mainTargetEntity.IsAlive())
+        UpdateTargets();
+
+        /*if (!newSystem && mainTargetEntity != null && mainTargetEntity.IsAlive())
             AttackTo(mainTargetEntity);
         else
-            StartScan();
+            StartScan();*/
+    }
+
+    void OnGUI()
+    {
+        /*float y = 0;
+        foreach (PotentialTarget target in targets)
+        {
+            if (target.entity != null)
+            {
+                GUI.color = Color.red;
+                GUI.Label(new Rect(0, y, 400, 100), target.entity.name + " - " + target.distance);
+                y += 20;
+            }
+        }*/
+    }
+    void OnDrawGizmos()
+    {
+        if (targetEntity != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(transform.position + Vector3.up * 0.5f, targetEntity.transform.position + Vector3.up * 0.5f);
+        }
     }
 }
