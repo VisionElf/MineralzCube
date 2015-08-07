@@ -1,9 +1,0 @@
-##TODO
-
-- PATHFINDING
-[ ] Get vectors depending on entity radius
-
-##BUGFIXES
-
-- BuildTask
-[ ] Building when maxAssign > 1 - DOESNT WORK
